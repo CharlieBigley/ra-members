@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="component" version="4.0" method="upgrade">
+    <name>com_ra_members</name>
+    <creationDate>7 May 2026</creationDate>
+    <copyright>2026 Charlie Bigley</copyright>
+    <license>GNU General Public License version 2 or later; see LICENSE.txt</license>
+    <author>Charlie Bigley</author>
+    <authorEmail>charlie@bigley.me.uk</authorEmail>
+    <authorUrl>http://</authorUrl>
+    <version>1.0.7</version>
+    <description>RA Members</description>
+    <namespace path="src">Ramblers\Component\Ra_members</namespace>  
+    <install> <!-- Runs on install -->
+        <sql>
+            <file driver="mysql" charset="utf8">sql/install.mysql.utf8.sql</file>
+        </sql>
+    </install>
+    <update> <!-- Runs on update -->
+        <schemas>
+            <schemapath type="mysql">sql/updates</schemapath>
+        </schemas>
+    </update>
+    <uninstall> <!-- Runs on uninstall -->
+        <sql>
+            <file driver="mysql" charset="utf8">sql/uninstall.mysql.utf8.sql</file>
+        </sql>
+    </uninstall>
+    <files folder="site">
+        <folder>src</folder>
+        <folder>forms</folder>
+        <folder>tmpl</folder>
+    </files>
+    <media destination="com_ra_members" folder="media">
+        <folder>css</folder>
+        <folder>js</folder>
+        <filename>joomla.asset.json</filename>
+    </media>
+    <administration>
+        <files folder="administrator">
+            <filename>access.xml</filename>
+            <filename>config.xml</filename>
+            <folder>forms</folder>
+            <folder>presets</folder>
+            <folder>services</folder>
+            <folder>sql</folder>
+            <folder>src</folder>
+            <folder>tmpl</folder>          
+        </files>
+        <languages folder="administrator/languages">           
+			<language tag="en-GB">en-GB/com_ra_members.ini</language>
+			<language tag="en-GB">en-GB/com_ra_members.sys.ini</language>
+        </languages>
+    </administration>
+    <config>
+        <fields name="params">
+            <fieldset name="component">
+                <field name="save_history" default="0" />
+            </fieldset>
+        </fields>
+    </config> 
+</extension>
+
+

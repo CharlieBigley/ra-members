@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<form>
+  <fieldset>
+    <field name="id" label="ID" type="text" readonly="true" class="readonly" default="0" description="JGLOBAL_FIELD_ID_DESC"/>
+    <field name="nation_id"
+      type="sql"
+      label="Nation" default="0"
+      query="SELECT id, name FROM #__ra_nations ORDER BY name"
+      key_field="id"
+      value_field="name"
+    />
+    <field name="code" type="text" label="Code" hint="COM_RA_TOOLS_FORM_LBL_AREA_CODE"/>
+    <field name="name" type="text" label="Name" description="" />
+    <field name="details" type="textarea" label="Details"/>
+    <field name="website" type="text" label="Website" description="Local website" />
+    <field name="cluster" type="text" label="Cluster" description="Cluster the Area belongs to" />
+     <field name="mailman_active"
+        type="radio"
+        label="Mailman Active"
+        description="Whether this Area/Group is active in Mailman."
+        class="btn-group btn-group-yesno"
+        default="0"
+        >
+            <option value="1">JYES</option>
+            <option value="0">JNO</option>
+        </field>
+  </fieldset>
+      <fieldset name="emailheader" label="Email header">
+        <field name="logo"
+          type="media"
+          directory="images/com_ra_mailman"
+          label="Logo"
+          description="Upload a logo for this Group/Area. It will be used in the header of the email."
+        />
+        <field
+            name="logo_align"
+            type="radio"
+            label="Logo alignment:"
+            description="Whether logo should float to the right or to the left"
+            default="right"
+            >
+            <option value="right">Right</option>
+            <option value="left">Left</option>
+        </field>
+        <field
+            name="colour_header"
+            type="color"
+            format="rgba"
+            label="Header colour"
+            default="rgba(155, 200, 171, 0.5)"
+            description="Background colour of the email header"
+        />
+        <field
+            name="colour_body"
+            type="color"
+            format="rgba"
+            label="Body colour"
+            default="rgba(155, 200, 171, 0.1)"
+            description="Background colour of the email body"
+        />
+        <field
+            name="colour_footer"
+            type="color"
+            format="rgba"
+            label="Footer colour"
+            default="rgba(155, 200, 171, 1)"
+            description="Background colour of the email footer"
+        />
+    </fieldset>
+    <fieldset name="welcome_letter" label="Welcome Letter">
+        <field
+            name="welcome_letter"
+            type="editor"
+            label="Welcome letter"
+             description="Welcome letter sent to new members of this Area. You can use the following placeholders: {name}."
+        />
+      </fieldset>
+     <fieldset name="reminder_letter" label="Reminder Letter">
+        <field
+            name="reminder_letter"
+            type="editor"
+            label="Reminder letter"
+             description="Reminder letter sent to members of this Area. You can use the following placeholders: {name}."
+        />
+      </fieldset>
+
+   <fieldset name="publishing" label="Publishing">
+   <field name="state" type="list" label="JSTATUS" description="JFIELD_PUBLISHED_DESC" class="inputbox" size="1" default="0">
+      <option value="1">JPUBLISHED</option>
+      <option value="0">JUNPUBLISHED</option>
+      <option value="2">JARCHIVED</option>
+      <option value="-2">JTRASHED</option>
+    </field>
+    <field name="checked_out" type="hidden" filter="unset"/>
+    <field name="checked_out_time" default="0000-00-00 00:00:00" type="hidden" filter="unset"/>
+    <field name="created" type="text" label="Date created" readonly="true" description="JGLOBAL_FIELD_CREATED_DESC" />
+    <field name="created_by" type="createdby" readonly="true" label="JGLOBAL_FIELD_CREATED_BY_LABEL" description="JGLOBAL_FIELD_CREATED_BY_DESC" />
+    <field name="modified" type="text"  readonly="true" label="Date modified" description="JGLOBAL_FIELD_MODIFIED_BY_DESC" />
+    <field name="modified_by" type="createdby" readonly="true" label="JGLOBAL_FIELD_MODIFIED_BY_LABEL" description="JGLOBAL_FIELD_MODIFIED_BY_DESC"/>
+    <field name="version_note" type="text" label="JGLOBAL_FIELD_VERSION_NOTE_LABEL" description="JGLOBAL_FIELD_VERSION_NOTE_DESC" class="inputbox" size="45" labelclass="control-label"/>
+    </fieldset>
+</form>

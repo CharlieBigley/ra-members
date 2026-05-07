@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<form>
+    <fields name="filter">
+        <field name="search" type="text" description="COM_RA_MEMBERS_SEARCH_FILTER_SUBMIT"
+               label="COM_USERS_FILTER_SEARCH_DESC"
+               class="js-stools-search-string" />
+         <field name="memberType" label="Member type" type="list"
+               class="js-select-submit-on-change" default="Member type">
+            <option value="">- Member type -</option>
+            <option value="member">Member</option>
+            <option value="affiliate">Affiliate</option>
+        </field> 
+        <field name="memberStatus" label="Status" type="list" 
+               class="js-select-submit-on-change" default="Member status">
+            <option value="">- Member status -</option>
+            <option value="active">Active</option>
+            <option value="payment pending">Pending</option>
+        </field>
+        <field name="memberTerm" label="Term" type="list" 
+               class="js-select-submit-on-change" default="Member term">
+            <option value="">- Member term -</option>
+            <option value="annual">Annual</option>
+            <option value="life">Life</option>
+        </field>        
+        <field name="membershipType" label="Membership type" type="list" 
+               class="js-select-submit-on-change" default="Membership type">
+            <option value="">- Membership type -</option>
+            <option value="single">Single</option>
+            <option value="joint">Joint</option>
+        </field>         
+        <field name="volunteer" label="Volunteer" type="list" 
+               class="js-select-submit-on-change" default="Volunteer">
+            <option value="">- Volunteer -</option>
+            <option value="Y">Yes</option>
+        </field>
+        <field name="walkProgrammeOptOut" type="list" 
+               class="js-select-submit-on-change" default="Prog opt out">
+            <option value="">- Prog opt out -</option>
+            <option value="Y">Yes</option>
+        </field>
+    </fields>
+
+    <fields name="list">
+
+        <field name="fullordering"
+               type="list"
+               label="COM_RA_MEMBERS_LIST_FULL_ORDERING"
+               description="COM_RA_MEMBERS_LIST_FULL_ORDERING_DESC"
+               class="js-select-submit-on-change"
+               default="a.id DESC"
+        >
+            <option value="">JGLOBAL_SORT_BY</option>
+            <option value="a.id ASC">COM_RA_MEMBERS_ID_ASC</option>
+            <option value="a.id DESC">COM_RA_MEMBERS_ID_DESC</option>
+            <option value="a.membershipNumber ASC">Mem No ASC</option>
+            <option value="a.membershipNumber DESC">Mem No DESC</option>
+            <option value="a.home_group ASC">Home group ASC</option>
+            <option value="a.home_group DESC">Home group DESC</option>
+            <option value="a.firstName ASC">First name ASC</option>
+            <option value="a.firstName DESC">First name DESC</option>
+            <option value="a.lastName ASC">Last name ASC</option>
+            <option value="a.lastName DESC">Last name DESC</option>
+            <option value="a.memberType ASC">Member type ASC</option>
+            <option value="a.memberType DESC">Member type DESC</option>
+            <option value="a.membershipType ASC">Membership type ASC</option>
+            <option value="a.membershipType DESC">Membership type DESC</option>
+            <option value="a.memberTerm ASC">Member term ASC</option>
+            <option value="a.memberTerm DESC">Member term DESC</option>
+            <option value="a.membershipExpiryDate ASC">Renewal date ASC</option>
+            <option value="a.membershipExpiryDate DESC">Renewal date DESC</option>
+            <option value="a.salesforceId ASC">SF ID ASC</option>
+            <option value="a.salesforceId DESC">SF ID DESC</option>
+        </field>
+
+       <field name="limit"
+               type="limitbox"
+               label="COM_RA_MEMBERS_LIST_LIMIT"
+               description="COM_RA_MEMBERS_LIST_LIMIT_DESC"
+               class="input-mini js-select-submit-on-change"
+               default="25"
+        />
+
+    </fields>
+
+</form>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--~
+ * @version    1.0.0
+ * @package    plg_ra_members
+ * @author     Charlie Bigley <webmaster@bigley.me.uk>
+ * @copyright  2026 Charlie Bigley
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ *
+ * 06/05/26 CB created from plg_ra_mailman
+  -->
+
+<extension type="plugin" group="console" method="upgrade">
+	<name>plg_ra_members</name>
+	<description>Ramblers plugin to import membership details</description>
+	<version>1.0.9</version>
+	<creationDate>10 Apr 2026</creationDate>
+	<author>Charlie Bigley</author>
+    <authorEmail>webmaster@bigley.me.uk</authorEmail>
+    <authorUrl>staffordshireramblers.org.uk</authorUrl>
+	<copyright>Copyleft 2026 Charlie Bigley</copyright>
+	<license>GNU General Public License version 2, or later</license>	
+	<namespace path="src">Ramblers\Plugin\Console\Ra_members</namespace>
+	<files>
+		<filename plugin="ra_members">ra_members.php</filename>
+		<folder>services</folder>
+		<folder>src</folder>
+	</files>
+</extension>
