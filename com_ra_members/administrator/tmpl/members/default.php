@@ -24,8 +24,8 @@ HTMLHelper::_('behavior.multiselect');
 
 // Import CSS
 $wa =  $this->document->getWebAssetManager();
-$wa->useStyle('com_ra_members.admin')
-    ->useScript('com_ra_members.admin');
+$wa->useStyle('com_ra_tools.admin')
+	->useScript('com_ra_tools.admin');
 
 $user      = Factory::getApplication()->getIdentity();
 $userId    = $user->get('id');

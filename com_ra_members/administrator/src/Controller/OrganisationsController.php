@@ -32,7 +32,7 @@ class OrganisationsController extends AdminController
 
         $this->app = Factory::getApplication();
         $this->toolsHelper = new ToolsHelper;
-        Factory::getApplication()->getDocument()->getWebAssetManager()->useStyle('com_ra_members.admin');
+        Factory::getApplication()->getDocument()->getWebAssetManager()->useStyle('com_ra_tools.admin');
     }
 
     public function cancel($key = null, $urlVar = null)

@@ -30,11 +30,6 @@
         <folder>forms</folder>
         <folder>tmpl</folder>
     </files>
-    <media destination="com_ra_members" folder="media">
-        <folder>css</folder>
-        <folder>js</folder>
-        <filename>joomla.asset.json</filename>
-    </media>
     <administration>
         <files folder="administrator">
             <filename>access.xml</filename>
