@@ -1,0 +1,20 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor settings
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Dependency directories
+vendor/
+node_modules/
+
+# Logs
+*.log
+
+# NetBeans local project state
+**/nbproject/private/
+**/nbproject.bak/
