@@ -5,6 +5,7 @@
  * @author     Charlie Bigley <charlie@bigley.me.uk>
  * @copyright  2026 Charlie Bigley
  * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ * 19/-5/26 CB fix error when filters are not initialised
  */
 
 namespace Ramblers\Component\Ra_members\Administrator\Model;
@@ -102,6 +103,24 @@ class MembersModel extends ListModel
 		$context = $this->getUserStateFromRequest($this->context.'.filter.search', 'filter_search');
 		$this->setState('filter.search', $context);
 
+		$context = $this->getUserStateFromRequest($this->context . '.filter.memberType', 'filter_memberType', '');
+		$this->setState('filter.memberType', $context);
+
+		$context = $this->getUserStateFromRequest($this->context . '.filter.memberStatus', 'filter_memberStatus', '');
+		$this->setState('filter.memberStatus', $context);
+
+		$context = $this->getUserStateFromRequest($this->context . '.filter.memberTerm', 'filter_memberTerm', '');
+		$this->setState('filter.memberTerm', $context);
+
+		$context = $this->getUserStateFromRequest($this->context . '.filter.membershipType', 'filter_membershipType', '');
+		$this->setState('filter.membershipType', $context);
+
+		$context = $this->getUserStateFromRequest($this->context . '.filter.volunteer', 'filter_volunteer', '');
+		$this->setState('filter.volunteer', $context);
+
+		$context = $this->getUserStateFromRequest($this->context . '.filter.walkProgrammeOptOut', 'filter_walkProgrammeOptOut', '');
+		$this->setState('filter.walkProgrammeOptOut', $context);
+
 		// Split context into component and optional section
 		if (!empty($context))
 		{
@@ -172,44 +191,45 @@ class MembersModel extends ListModel
 
 
 		$memberType = $this->getState('filter.memberType');
-		if ($memberType !== '')
+//		var_dump($memberType);
+		if ($memberType !== null && $memberType !== '')
 		{
 			$query->where($db->quoteName('a.memberType') . ' = ' . $db->quote($memberType));
 		}
 
 		$memberStatus = $this->getState('filter.memberStatus');
-		if ($memberStatus !== '')
+		if ($memberStatus !== null && $memberStatus !== '')
 		{
 			$query->where($db->quoteName('a.memberStatus') . ' = ' . $db->quote($memberStatus));
 		}
 
 		$memberTerm = $this->getState('filter.memberTerm');
-		if ($memberTerm !== '')
+		if ($memberTerm !== null && $memberTerm !== '')
 		{
 			$query->where($db->quoteName('a.memberTerm') . ' = ' . $db->quote($memberTerm));
 		}
 
 		$membershipType = $this->getState('filter.membershipType');
-		if ($membershipType !== '')
+		if ($membershipType !== null && $membershipType !== '')
 		{
 			$query->where($db->quoteName('a.membershipType') . ' = ' . $db->quote($membershipType));
 		}
 
 		$volunteer = $this->getState('filter.volunteer');
-		if ($volunteer !== '')
+		if ($volunteer !== null && $volunteer !== '')
 		{
 			$query->where($db->quoteName('a.volunteer') . ' = ' . $db->quote($volunteer));
 		}
 
 		$walkProgrammeOptOut = $this->getState('filter.walkProgrammeOptOut');
-		if ($walkProgrammeOptOut !== '')
+		if ($walkProgrammeOptOut !== null && $walkProgrammeOptOut !== '')
 		{
 			$query->where($db->quoteName('a.walkProgrammeOptOut') . ' = ' . $db->quote($walkProgrammeOptOut));
 		}
 		
         // For non full version, only show Roles for the current User's Group
         if (($group !== 'N') AND ($toolsHelper->isSuperuser() === false)) {
-             $query->where('a.group_code=' . $this->_db->quote($group));
+             $query->where('a.home_group=' . $this->_db->quote($group));
         }	
 		// Filter by search 
         $searchWord = $this->getState('filter.search');

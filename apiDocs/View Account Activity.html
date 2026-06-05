@@ -1,0 +1,434 @@
+For AI agents: visit https://developers.smtp2go.com/llms.txt for an
+index of all pages formatted in Markdown and endpoints in OpenAPI.
+Jump to Content <#content>
+SMTP2GO-API-Docs <https://developers.smtp2go.com/docs>
+
+/
+
+/Guides <https://developers.smtp2go.com/docs>
+/
+
+/API Reference <https://developers.smtp2go.com/reference>
+v3.0.4
+------------------------------------------------------------------------
+Log In <https://developers.smtp2go.com/login?redirect_uri=/docs/view-
+account-activity>SMTP2GO-API-Docs <https://developers.smtp2go.com/docs>
+/
+
+/Guides
+Log In <https://developers.smtp2go.com/login?redirect_uri=/docs/view-
+account-activity>
+
+v3.0.4
+/
+
+/Guides <https://developers.smtp2go.com/docs>
+/
+
+/API Reference <https://developers.smtp2go.com/reference>
+
+View Account Activity
+
+Search
+CTRL-K
+
+
+    Welcome
+
+  * Introduction <https://developers.smtp2go.com/docs/introduction-guide>
+  * Getting Started with the API <https://developers.smtp2go.com/docs/
+    getting-started>
+  * API Features Overview <https://developers.smtp2go.com/docs/api-
+    features-guide>
+  * Endpoints <https://developers.smtp2go.com/docs/endpoints>
+  * Response Codes <https://developers.smtp2go.com/docs/response-codes>
+  * Rate Limiting <https://developers.smtp2go.com/docs/rate-limiting>
+
+
+    Guides
+
+  * Send an Email <https://developers.smtp2go.com/docs/send-an-email>
+  * Getting started with Templates <https://developers.smtp2go.com/docs/
+    getting-started-with-templates>
+  * Bounce Report & Statistics <https://developers.smtp2go.com/docs/
+    report-on-email-delivery>
+  * View Account Activity <https://developers.smtp2go.com/docs/view-
+    account-activity>
+  * Adding Attachments <https://developers.smtp2go.com/docs/adding-
+    attachments>
+
+
+    AI
+
+  * MCP <https://developers.smtp2go.com/docs/mcp>
+
+
+    Integration
+
+  * Official Libraries <https://developers.smtp2go.com/docs/official-
+    libraries>
+  * SMTP Relay <https://developers.smtp2go.com/docs/smtp-relay>
+  * WordPress Plugin <https://developers.smtp2go.com/docs/wordpress-plugin>
+  * Slack App <https://developers.smtp2go.com/docs/slack-app>
+  * cPanel/WHM Automation Plugin <https://developers.smtp2go.com/docs/
+    cpanelwhm-automation-plugin>
+
+
+    Webhooks
+
+  * Webhooks Overview <https://developers.smtp2go.com/docs/webhooks-
+    overview>
+  * Setup a Webhook <https://developers.smtp2go.com/docs/setup-a-webhook>
+
+Powered by 
+
+<https://readme.com/?ref_src=hub&project=smtp2goapi>
+
+
+  View Account Activity
+
+
+    Introducing Activity Search
+    <#introducing-activity-search>
+
+The /activity/search <https://developers.smtp2go.com/reference/search-
+activity> endpoint allows you to search email events from your account’s
+“Reports > Activity” page matching the criteria in your request.
+
+Accounts on the free plan can search up to 5 days of event history and
+paid plans up to 30 days by default. If paid plans utilize the Activity
+Duration <https://support.smtp2go.com/hc/en-gb/articles/27243944323737-
+Activity-Storage-Duration> feature to extend the storage (from 60 days
+up to 2 years) then event history will be available for the selected
+timeframe.
+
+The request can return up to a maximum of 1,000 events by default and if
+the response exceeds that, a continue_token will be provided to retrieve
+the remaining results.
+
+
+    Parameters
+    <#parameters>
+
+The /activity/search <https://developers.smtp2go.com/reference/search-
+activity> endpoint accepts 14 parameters with all listed below.
+
+Parameter
+
+	
+
+Type
+
+	
+
+Description
+
+start_date
+
+	
+
+date
+
+	
+
+ISO-8601 formatted datetime which defaults to the current date at
+midnight. The range will be inclusive of start_date and exclusive of
+end_date. The timezone is UTC.
+
+end_date
+
+	
+
+date
+
+	
+
+ISO-8601 formatted datetime which defaults to now. The timezone is UTC.
+
+search
+
+	
+
+string
+
+	
+
+If passed, will return all events for emails containing this string in
+the Email_id, Subject, To, Recipient or BCC fields. To return events
+with one or more text values, separate the text with '|' (e.g. 'text1 |
+text2').
+
+search_subject
+
+	
+
+string
+
+	
+
+If passed, will return all events for emails containing this string in
+the email subject.
+
+search_sender
+
+	
+
+string
+
+	
+
+If passed, will return all events for emails containing this string in
+the email sender.
+
+search_recipient
+
+	
+
+string
+
+	
+
+If passed, will return all events for emails containing this string in
+the email recipient.
+
+search_usernames
+
+	
+
+Array of strings
+
+	
+
+If passed, will return all events for emails sent by this/these username/s.
+
+subaccounts
+
+	
+
+Array of strings
+
+	
+
+If passed, will return all events for emails sent by this/these
+subaccount/s.
+
+limit
+
+	
+
+int32
+
+	
+
+The maximum number of events to return (Max: 1000).
+
+continue_token
+
+	
+
+string
+
+	
+
+If passed, will continue the search beyond the current page, using the
+same search parameters.
+
+only_latest
+
+	
+
+boolean
+
+	
+
+If true, will only return the most recent event for each email returned.
+Default: false.
+
+only_latest_by_sent
+
+	
+
+boolean
+
+	
+
+If true, will only return the most recent event for each email returned
+ordered by sent date. Default: false
+
+event_types
+
+	
+
+array of strings
+
+	
+
+If passed, will limit the returned events to the provided event types.
+Values: 'processed', 'soft-bounced', 'hard-bounced', 'rejected', 'spam',
+'delivered', 'unsubscribed', 'resubscribed', 'opened' and 'clicked.'
+
+include_headers
+
+	
+
+boolean
+
+	
+
+Return the full email headers with the response.
+
+custom_headers
+
+	
+
+array of strings
+
+	
+
+A list of header keys to parse out of the raw headers.
+
+
+    A search for bounced emails
+    <#a-search-for-bounced-emails>
+
+In this search, we'll make use of only a few parameters covered above.
+However, you can combine many parameters to refine your search so it
+returns the particular data you need.
+
+The search in this example will return soft and hard bounces encountered
+by a specific sending address within a defined period. To achieve this,
+the parameters used include the start_date, end_date, search_sender,
+event_types and limit (simply to limit the results to 1 for display
+purposes).
+
+The example uses cURL. A range of languages are available which you can
+test and generate examples for on the “Search Activity <https://
+developers.smtp2go.com/reference/search-activity>” page of the API
+Reference section.
+
+In the request headers, we POST to the “https://api.smtp2go.com/v3/
+activity/search” <https://api.smtp2go.com/v3/activity/search%E2%80%9D>
+endpoint, define the content type of “application/json” and include a
+valid API Key for authentication. The search parameters are set in the
+request body as JSON objects.
+
+
+    The Request
+    <#the-request>
+
+cURL
+
+|
+curl --request POST \
+     --url https://api.smtp2go.com/v3/activity/search \
+     --header 'Content-Type: application/json' \
+     --header 'X-Smtp2go-Api-Key: api-xxxxxxxxxxxx' \
+     --header 'accept: application/json' \
+     --data '
+{
+  "start_date": "2024-02-11",
+  "end_date": "2024-02-13",
+  "event_types": [
+    "soft-bounced",
+    "hard-bounced"
+  ],
+  "search_sender": "sender@example.com",
+  "limit: 1
+}
+'
+
+|
+
+
+    Response
+    <#response>
+
+A 200 response indicates a successful request and it would look similar to:
+
+cURL
+
+|
+{
+"request_id": "82aff18a-ca05-11ee-8a81-f23c9216ce11","data": {
+  "events": [
+    {
+      "from": "sender@example.com",
+      "recipient": "hello@example.com",
+      "subaccount_name": "Master account",
+      "email_id": "1rZPGW-u6wXBO-2m",
+      "date": "2024-02-12T05:54:07Z",
+      "event": "hard-bounced",
+      "subject": "Test bounce",
+      "username": "TestUser",
+       "sender": "sender@example.com",
+       "sender_full": "sender@example.com",
+       "to": "hello@example.com",
+      "smtp_response": "550-5.1.1 The email account that you tried to reach does not exist. Please try\\n550-5.1.1 double-checking the recipient's email address for typos or\\n550-5.1.1 unnecessary spaces. For more information, go to\\n550 5.1.1  https://support.google.com/mail/?p=NoSuchUser n13-20020a05622a040d00b0042bf4b5caf6si7967427qtx.480 - gsmtp",
+      "host": "142.xxx.xxx.xx",
+      "outbound_ip": "103.47.206.44",
+      "byte_size": 1068
+    }
+  ],
+  "total_events": 3,
+  "continue_token": "eyJhbGciO***********"
+}
+}
+
+|
+
+Note: a |continue_token| was included in the response, as the search
+returned three results ("total_events": 3) but a limit of 1 was set in
+the request so it would only show one result for display purposes. The |
+continue_token| indicates the results exceed the limit (either passed in
+the request or the default value). In the event that you receive a |
+continue_token| string, you can pass it along with all of the original
+request data to continue the search and retrieve the next batch of results.
+
+A 400 response indicates a failure. The response will include an error
+code and details covering the cause of the error, similar to the below
+example where an incorrect event type was set:
+
+cURL
+
+|
+{
+  "request_id": "ce3fc5b4-ca08-11ee-bd82-f23c93560c0e",
+  "data": {
+    "error": "An error occurred processing the json data you sent with the request. Please make sure the data conforms to the specification for this call (see the documentation here: https://developers.smtp2go.com/reference/introduction) and try again. Don't forget to set Content-Type to 'application/json'.",
+    "error_code": "E_ApiResponseCodes.NON_VALIDATING_IN_PAYLOAD",
+    "field_validation_errors": {
+      "fieldname": "event_types",
+      "message": "The field 'event_types' was expecting a value from the allowed list ['processed', 'soft-bounced', 'hard-bounced', 'rejected', 'spam', 'delivered', 'unsubscribed', 'resubscribed', 'opened', 'clicked'] but instead found '['example']', Please correct your JSON payload and try again."
+    }
+  }
+}
+
+|
+
+The activity/search <https://developers.smtp2go.com/reference/search-
+activity> endpoint can be used for simple requests such as the above or
+dive into more complex searches utilizing a range of parameters.
+
+If you encounter an error when making a request, please submit a support
+ticket and provide the request_id in the response along with your
+request code as these will help our team investigate.
+
+/
+
+/Updated 9 months ago
+
+------------------------------------------------------------------------
+Bounce Report & Statistics
+ <https://developers.smtp2go.com/docs/report-on-email-delivery>
+Adding Attachments
+<https://developers.smtp2go.com/docs/adding-attachments>
+
+Copy Page
+
+  *
+      o Introducing Activity Search <#introducing-activity-search>
+      o Parameters <#parameters>
+      o A search for bounced emails <#a-search-for-bounced-emails>
+      o The Request <#the-request>
+      o Response <#response>
+

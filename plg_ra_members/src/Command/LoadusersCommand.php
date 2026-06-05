@@ -61,6 +61,7 @@ class LoadusersCommand extends AbstractCommand {
         $this->db = Factory::getDbo();
         $this->toolsHelper = new ToolsHelper;
         $this->loadUsers = new LoadHelper;
+        $this->loadUsers->batch_mode = true; // set to true to avoid memory issues and to allow messages to be displayed at the end of the batch process    
         $this->app = Factory::getApplication();
     }
 

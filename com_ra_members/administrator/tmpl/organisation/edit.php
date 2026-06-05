@@ -101,6 +101,7 @@ HTMLHelper::_('bootstrap.tooltip');
                 <?php echo $this->form->renderField('created_by'); ?>
                 <?php echo $this->form->renderField('modified'); ?>
                 <?php echo $this->form->renderField('modified_by'); ?>
+                <?php echo $this->form->renderField('last_updated'); ?>
             </fieldset>
         </div>
     </div>

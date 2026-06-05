@@ -7,6 +7,10 @@ use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Router\Route;
 use Ramblers\Component\Ra_tools\Site\Helpers\ToolsHelper;
 
+// Import CSS
+$wa = $this->document->getWebAssetManager();
+$wa->registerAndUseStyle('ramblers', 'com_ra_tools/ramblers.css');
+
 $listOrder = $this->escape($this->state->get('list.ordering'));
 $listDirn = $this->escape($this->state->get('list.direction'));
 $groupsOnly = $this->state->get('filter.record_type') === 'G';

@@ -15,6 +15,7 @@ defined('_JEXEC') or die;
 use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
 use \Joomla\CMS\Factory;
 use \Joomla\CMS\Language\Text;
+use Ramblers\Component\Ra_tools\Site\Helpers\ToolsHelper;
 
 /**
  * View class for a list of Ra_members.
@@ -23,14 +24,11 @@ use \Joomla\CMS\Language\Text;
  */
 class HtmlView extends BaseHtmlView
 {
+	protected $item;
 	protected $state;
 
-	protected $item;
-
-	protected $form;
-
 	protected $params;
-
+	protected $toolsHelper;
 	/**
 	 * Display the view
 	 *
@@ -48,11 +46,7 @@ class HtmlView extends BaseHtmlView
 		$this->state  = $this->get('State');
 		$this->item   = $this->get('Item');
 		$this->params = $app->getParams('com_ra_members');
-
-		if (!empty($this->item))
-		{
-			
-		}
+		$this->toolsHelper = new ToolsHelper;
 
 		// Check for errors.
 		if (count($errors = $this->get('Errors')))

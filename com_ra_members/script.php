@@ -249,7 +249,7 @@ class Com_Ra_membersInstallerScript {
         $sql .= 'WHERE element="' . $component . '"';
         echo $sql . '<br>';
         return '1.0.2';
-        $json = $this->getValue($sql)
+        $json = $this->getValue($sql);
         if (is_null($json)){
             echo 'Could not find previous version<br>>';
             return '1.0.2';
@@ -388,7 +388,6 @@ class Com_Ra_membersInstallerScript {
 
     public function postflight($type, $parent) {
         'Postflight RA Members (com_ra_members)<br>';
-return true;
         if ($type == 'uninstall') {
             return true;
         }
@@ -404,7 +403,6 @@ return true;
 
     public function preflight($type, $parent): bool {
         echo 'Preflight RA members (type=' . $type . ')<br>';
-return true;
         if ($type == 'uninstall') {
             return true;
         }
@@ -426,7 +424,7 @@ return true;
             echo 'Can only be installed if com_ra_mailman is already present';
             return false;
         }
-        $tools_required = '3.5.5';
+        $tools_required = '3.7.1';
         $tools_version = $this->getVersion('com_ra_tools');
         echo '<p>Version ' . $tools_required . ' of com_ra_tools required<br>';
         if (version_compare($tools_version, $tools_required, 'ge')) {
@@ -448,20 +446,13 @@ return true;
             echo 'Requires version >= ' . $this->version_required . '</p>';
         }      
         if (version_compare($this->current_version, '1.1.0', 'le')) {
-            $this->checkColumn('ra_organisation', 'mailman_active', 'A', 'VARCHAR(1) DEFAULT "N" AFTER longitude; ');
+            $this->checkColumn('ra_organisations', 'mailman_active', 'A', 'VARCHAR(1) DEFAULT "N" AFTER longitude; ');
 /*
             $this->checkColumn('ra_mail_shots', 'record_type', 'A', 'VARCHAR(1) DEFAULT "M" AFTER id; ');
             $this->checkColumn('ra_mail_shots', 'mail_list_id', 'U', 'INT NULL; ');
             $this->checkColumn('ra_mail_shots', 'event_id', 'A', 'INT NULL AFTER mail_list_id; ');           
 
 */
-        }
-        if (version_compare($this->current_version, '4.6.0', 'le')) {
-            echo 'Deleting redundant view profile<br>';
-            $this->deleteView('Profile');
-        }
-        if (version_compare($this->current_version, '4.5.0', 'le')) {
-            $this->checkColumn('ra_mail_lists', 'emails_outstanding', 'A', 'INT DEFAULT "0" AFTER footer; ');
         }
         return true;
     }

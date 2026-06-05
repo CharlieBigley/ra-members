@@ -1,8 +1,9 @@
 <?php
 
 /**
- * @version    1.0.0
+ * @version    1.1.1
  * @package    com_ra_members
+ * 22/05/26 CB set last_updated to NULL if not sef
  */
 
 namespace Ramblers\Component\Ra_members\Administrator\Table;
@@ -52,9 +53,6 @@ class OrganisationTable extends Table implements VersionableTableInterface, Tagg
             $array['nation_id'] = 0;
         }
 
-        if (($array['id'] ?? 0) == 0 && empty($array['created_by'])) {
-            $array['created_by'] = Factory::getUser()->id;
-        }
 
         if (isset($array['cluster'])) {
             $array['cluster'] = strtoupper(trim((string) $array['cluster']));
@@ -168,10 +166,15 @@ class OrganisationTable extends Table implements VersionableTableInterface, Tagg
 
     public function store($updateNulls = true)
     {
-        if ($this->id > 0) {
-            $this->modified_by = Factory::getApplication()->getSession()->get('user')->id;
-            $this->modified = Factory::getDate('now', Factory::getConfig()->get('offset'))->toSql(true);
-        }
+        $user = Factory::getApplication()->getIdentity();
+        $date = Factory::getDate('now', Factory::getConfig()->get('offset'))->toSql(true);
+        if ($this->id == 0) {
+            $this->created = $date;
+            $this->created_by = $user->id;
+        } else {
+            $this->modified_by = $user->id;
+            $this->modified = $date;
+        }	
 
         return parent::store($updateNulls);
     }

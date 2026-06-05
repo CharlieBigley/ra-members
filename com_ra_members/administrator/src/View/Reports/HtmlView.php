@@ -18,9 +18,8 @@ use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
 use Joomla\CMS\Toolbar\Toolbar;
 use Joomla\CMS\Toolbar\ToolbarHelper;
 use \Joomla\CMS\User\CurrentUserInterface;
-use Ramblers\Component\Ra_tools\Site\Helpers\Tools;
+use Ramblers\Component\Ra_tools\Site\Helpers\ToolsHelper;
 
-//use Ramblers\Component\ra_tools\Administrator\Helper\ToolsHelper;
 class HtmlView extends BaseHtmlView implements CurrentUserInterface {
 
     protected $params;
@@ -29,7 +28,8 @@ class HtmlView extends BaseHtmlView implements CurrentUserInterface {
     public function display($tpl = null) {
         $app = Factory::getApplication();
         $this->user = $this->getCurrentUser();
-
+		$this->toolsHelper = new ToolsHelper;
+		$this->isSuper = $this->toolsHelper->isSuperuser();
         $this->params = ComponentHelper::getParams('com_ra_members');
 
         parent::display($tpl);

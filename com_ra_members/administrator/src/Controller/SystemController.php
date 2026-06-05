@@ -347,8 +347,8 @@ class SystemController extends FormController
         $this->checkColumn('ra_profiles', 'landlineTelephone','A','VARCHAR(50) NULL AFTER postcode');
         $this->checkColumn('ra_profiles', 'mobileNumber','A','VARCHAR(50) NULL AFTER landlineTelephone');
         $this->checkColumn('ra_profiles', 'membershipExpiryDate','A','DATE NULL AFTER mobileNumber');
-        $this->checkColumn('ra_profiles', 'ramblersJoinDate','A','DATE NULL AFTER membershipExpiryDate');
-        $this->checkColumn('ra_profiles', 'areaJoinedDate','A','DATE NULL AFTER ramblersJoinDate');
+        $this->checkColumn('ra_profiles', 'ramblersJoinedDate','A','DATE NULL AFTER membershipExpiryDate');
+        $this->checkColumn('ra_profiles', 'areaJoinedDate','A','DATE NULL AFTER ramblersJoinedDate');
         $this->checkColumn('ra_profiles', 'groupJoinedDate','A','DATE NULL AFTER areaJoinedDate');
         $this->checkColumn('ra_profiles', 'volunteer','A','CHAR(1) NULL AFTER groupJoinedDate');
         $this->checkColumn('ra_profiles', 'emailMarketingConsent','A','CHAR(1) NULL AFTER volunteer');

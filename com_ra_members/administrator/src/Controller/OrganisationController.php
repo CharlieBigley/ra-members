@@ -1,8 +1,11 @@
 <?php
 
 /**
- * @version    1.0.0
- * @package    com_ra_members
+ * @version     1.0.1
+ * @package     com_ra_members
+ * @copyright   Copyright (C) 2020. All rights reserved.
+ * @license     GNU General Public License version 2 or later; see LICENSE.txt
+ * @author      Charlie <webmaster@bigley.me.uk> - https://www.stokeandnewcastleramblers.org.uk
  */
 
 namespace Ramblers\Component\Ra_members\Administrator\Controller;
@@ -44,6 +47,14 @@ class OrganisationController extends FormController
 // Import CSS
         $wa = Factory::getApplication()->getDocument()->getWebAssetManager();
         $wa->registerAndUseStyle('ramblers', 'com_ra_tools/ramblers.css');
+    }
+
+    public function addRole(){
+
+    }
+
+    public function addRoleRecord(){
+
     }
 
     public function cancel($key = null)
@@ -115,71 +126,9 @@ class OrganisationController extends FormController
             }
         }
     }
+    public function deleteRole(){}
 
-    public function showMembers()
-    {
-        $code = Factory::getApplication()->input->getCmd('code', '');
-        $sql = 'SELECT name from #__ra_organisations WHERE code = ' . Factory::getContainer()->get('DatabaseDriver')->quote($code);
-        $area = $this->toolsHelper->getValue($sql);
-        ToolbarHelper::title('Members in Organisation ' . $area);
-
-        $sql = 'SELECT * from #__ra_profiles ';
-
-        if (strlen($code) === 2) {
-            $sql .= 'WHERE home_group like ' . Factory::getContainer()->get('DatabaseDriver')->quote($code . '%') . ' ';
-        } else {
-            $sql .= 'WHERE home_group = ' . Factory::getContainer()->get('DatabaseDriver')->quote($code) . ' ';
-        }
-
-        $sql .= 'ORDER BY lastName, firstName ';
-
-        $table = new ToolsTable;
-        $table->add_header('Mem No,Preferred name,Home group,Join date,Expiry date,Member type,Member term,Status,Volunteer');
-        $rows = $this->toolsHelper->getRows($sql);
-
-        foreach ($rows as $row) {
-            $table->add_item($row->membershipNumber);
-            $table->add_item($row->preferred_name);
-            $table->add_item($row->home_group);
-            $table->add_item(HTMLHelper::_('date', $row->ramblersJoinDate, 'd M y'));
-            $table->add_item(HTMLHelper::_('date', $row->membershipExpiryDate, 'd M y'));
-            $table->add_item($row->memberType);
-            $table->add_item($row->memberTerm);
-            $table->add_item($row->memberStatus);
-            $table->add_item($row->volunteer);
-            $table->generate_line();
-        }
-
-        $table->generate_table();
-        echo $this->toolsHelper->backButton($this->back);
-    }
-
-    public function showOrganisation()
-    {
-        $code = Factory::getApplication()->input->getCmd('code', 'NS');
-        $sql = 'SELECT * FROM #__ra_organisations WHERE code = ' . Factory::getContainer()->get('DatabaseDriver')->quote($code);
-        $area = $this->toolsHelper->getItem($sql);
-
-        ToolbarHelper::title($area->name);
-
-        if ($area->record_type === 'A') {
-            $sql = 'SELECT name from #__ra_nations WHERE id = ' . (int) $area->nation_id;
-            $nation = $this->toolsHelper->getValue($sql);
-            echo 'Nation <b>' . $nation . '</b><br>';
-            echo 'Cluster <b>' . $area->cluster . '</b><br>';
-        }
-
-        echo 'Code <b>' . $area->code . '</b><br>';
-        echo 'Name <b>' . $area->name . '</b><br>';
-        echo 'Details <b>' . $area->details . '</b><br>';
-        echo 'Website <b>' . $area->website . '</b><br>';
-        echo 'Head office site <b>' . $area->co_url . '</b><br>';
-        echo 'Latitude <b>' . $area->latitude . '</b><br>';
-        echo 'Longitude <b>' . $area->longitude . '</b><br>';
-        echo $this->toolsHelper->backButton($this->back);
-    }
-
-    public function showGroups()
+        public function showGroups()
     {
         $code = Factory::getApplication()->input->getCmd('area', '');
         $sql = 'SELECT name from #__ra_organisations WHERE code = ' . Factory::getContainer()->get('DatabaseDriver')->quote($code);
@@ -204,4 +153,84 @@ class OrganisationController extends FormController
         $table->generate_table();
         echo $this->toolsHelper->backButton($this->back);
     }
+
+    public function showMembers() {
+        $code = Factory::getApplication()->input->getCmd('code', '');
+        $sql = 'SELECT name from #__ra_organisations WHERE code = ' . Factory::getContainer()->get('DatabaseDriver')->quote($code);
+        $area = $this->toolsHelper->getValue($sql);
+        ToolbarHelper::title('Members in Organisation ' . $area);
+
+        $sql = 'SELECT * from #__ra_profiles ';
+
+        if (strlen($code) === 2) {
+            $sql .= 'WHERE home_group like ' . Factory::getContainer()->get('DatabaseDriver')->quote($code . '%') . ' ';
+        } else {
+            $sql .= 'WHERE home_group = ' . Factory::getContainer()->get('DatabaseDriver')->quote($code) . ' ';
+        }
+
+        $sql .= 'ORDER BY lastName, firstName ';
+
+        $table = new ToolsTable;
+        $table->add_header('Mem No,Preferred name,Home group,Join date,Expiry date,Member type,Member term,Status,Volunteer');
+        $rows = $this->toolsHelper->getRows($sql);
+
+        foreach ($rows as $row) {
+            $table->add_item($row->membershipNumber);
+            $table->add_item($row->preferred_name);
+            $table->add_item($row->home_group);
+            $table->add_item(HTMLHelper::_('date', $row->ramblersJoinedDate, 'd M y'));
+            $table->add_item(HTMLHelper::_('date', $row->membershipExpiryDate, 'd M y'));
+            $table->add_item($row->memberType);
+            $table->add_item($row->memberTerm);
+            $table->add_item($row->memberStatus);
+            $table->add_item($row->volunteer);
+            $table->generate_line();
+        }
+
+        $table->generate_table();
+        echo $this->toolsHelper->backButton($this->back);
+    }
+
+    public function showOrganisation() {
+        $code = Factory::getApplication()->input->getCmd('code', 'NS');
+        $sql = 'SELECT * FROM #__ra_organisations WHERE code = ' . Factory::getContainer()->get('DatabaseDriver')->quote($code);
+        $area = $this->toolsHelper->getItem($sql);
+
+        if ($area === false) {
+            ToolbarHelper::title('Organisation lookup failed');
+            echo 'Unable to load organisation ' . htmlspecialchars($code) . '. ' . htmlspecialchars((string) $this->toolsHelper->error) . '<br>';
+            echo $this->toolsHelper->backButton($this->back);
+            return;
+        }
+
+        if (is_null($area)) {
+            ToolbarHelper::title('Organisation not found');
+            echo 'No organisation found for code <b>' . htmlspecialchars($code) . '</b><br>';
+            echo $this->toolsHelper->backButton($this->back);
+            return;
+        }
+
+        ToolbarHelper::title($area->name);
+
+        if ($area->record_type === 'A') {
+            $sql = 'SELECT name from #__ra_nations WHERE id = ' . (int) $area->nation_id;
+            $nation = $this->toolsHelper->getValue($sql);
+            echo 'Nation <b>' . $nation . '</b><br>';
+            echo 'Cluster <b>' . $area->cluster . '</b><br>';
+        }
+
+        echo 'Code <b>' . $area->code . '</b><br>';
+        echo 'Name <b>' . $area->name . '</b><br>';
+        echo 'Details <b>' . $area->details . '</b><br>';
+        echo 'Website <b>' . $area->website . '</b><br>';
+        echo 'Head office site <b>' . $area->co_url . '</b><br>';
+        echo 'Latitude <b>' . $area->latitude . '</b><br>';
+        echo 'Longitude <b>' . $area->longitude . '</b><br>';
+        echo $this->toolsHelper->backButton($this->back);
+    }
+
+    public function showRoles(){
+        
+    }
+
 }

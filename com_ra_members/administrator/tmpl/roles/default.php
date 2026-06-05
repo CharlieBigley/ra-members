@@ -23,9 +23,8 @@ HTMLHelper::_('bootstrap.tooltip');
 HTMLHelper::_('behavior.multiselect');
 
 // Import CSS
-$wa =  $this->document->getWebAssetManager();
-$wa->useStyle('com_ra_tools.admin')
-	->useScript('com_ra_tools.admin');
+$wa = $this->document->getWebAssetManager();
+$wa->registerAndUseStyle('ramblers', 'com_ra_tools/ramblers.css');
 
 $user      = Factory::getApplication()->getIdentity();
 $userId    = $user->get('id');

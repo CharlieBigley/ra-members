@@ -1,7 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <config>
     <fieldset label="COM_RA_MEMBERS" name="ra_members">
-        
+     <field name="show_area_reports"
+        type="radio"
+        label="Area reports"
+        description="Whether or not to show reports at Area level. "
+        class="btn-group btn-group-yesno"
+        default="0"
+        >
+            <option value="1">JYES</option>
+            <option value="0">JNO</option>
+    </field>        
     </fieldset>
 
     <fieldset name="permissions" description="JCONFIG_PERMISSIONS_DESC" label="JCONFIG_PERMISSIONS_LABEL">

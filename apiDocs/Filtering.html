@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+	<title></title>
+	<meta name="generator" content="LibreOffice 7.3.7.2 (Linux)"/>
+	<meta name="created" content="2026-06-04T05:40:00.837426755"/>
+	<meta name="changed" content="2026-06-04T05:41:44.509879891"/>
+	<style type="text/css">
+		h2.cjk { font-family: "Noto Serif CJK SC" }
+		h2.ctl { font-family: "Lohit Devanagari" }
+	</style>
+</head>
+<body lang="en-GB" dir="ltr"><h2 class="western">Introducing Activity
+Search</h2>
+<p>The <a href="https://developers.smtp2go.com/reference/search-activity" target="_self">/activity/search</a>
+endpoint allows you to search email events from your account’s
+“Reports &gt; Activity” page matching the criteria in your
+request.</p>
+<p>The request can return up to a maximum of 1,000 events by default
+and if the response exceeds that, a continue_token will be provided
+to retrieve the remaining results.</p>
+<div id="parameters" dir="ltr"><h2 class="western"><br/>
+<br/>
+
+	</h2>
+</div>
+<h2 class="western">Parameters</h2>
+<p>The <a href="https://developers.smtp2go.com/reference/search-activity" target="_self">/activity/search</a>
+endpoint accepts 14 parameters with all listed below.</p>
+<table cellpadding="2" cellspacing="2">
+	<thead>
+		<tr>
+			<th style="border: none; padding: 0cm"><p>Parameter</p>
+			</th>
+			<th style="border: none; padding: 0cm"><p>Type</p>
+			</th>
+			<th style="border: none; padding: 0cm"><p>Description</p>
+			</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td style="border: none; padding: 0cm"><p>start_date</p>
+			</td>
+			<td style="border: none; padding: 0cm"><p>date</p>
+			</td>
+			<td style="border: none; padding: 0cm"><p>ISO-8601 formatted
+				datetime which defaults to the current date at midnight. The
+				range will be inclusive of start_date and exclusive of end_date.
+				The timezone is UTC.</p>
+			</td>
+		</tr>
+		<tr>
+			<td style="border: none; padding: 0cm"><p>end_date</p>
+			</td>
+			<td style="border: none; padding: 0cm"><p>date</p>
+			</td>
+			<td style="border: none; padding: 0cm"><p>ISO-8601 formatted
+				datetime which defaults to now. The timezone is UTC.</p>
+			</td>
+		</tr>
+		<tr>
+			<td style="border: none; padding: 0cm"><p>search</p>
+			</td>
+			<td style="border: none; padding: 0cm"><p>string</p>
+			</td>
+			<td style="border: none; padding: 0cm"><p>If passed, will return
+				all events for emails containing this string in the Email_id,
+				Subject, To, Recipient or BCC fields. To return events with one
+				or more text values, separate the text with '|' (e.g. 'text1 |
+				text2').</p>
+			</td>
+		</tr>
+		<tr>
+			<td style="border: none; padding: 0cm"><p>search_subject</p>
+			</td>
+			<td style="border: none; padding: 0cm"><p>string</p>
+			</td>
+			<td style="border: none; padding: 0cm"><p>If passed, will return
+				all events for emails containing this string in the email
+				subject.</p>
+			</td>
+		</tr>
+		<tr>
+			<td style="border: none; padding: 0cm"><p>search_sender</p>
+			</td>
+			<td style="border: none; padding: 0cm"><p>string</p>
+			</td>
+			<td style="border: none; padding: 0cm"><p>If passed, will return
+				all events for emails containing this string in the email sender.</p>
+			</td>
+		</tr>
+		<tr>
+			<td style="border: none; padding: 0cm"><p>search_recipient</p>
+			</td>
+			<td style="border: none; padding: 0cm"><p>string</p>
+			</td>
+			<td style="border: none; padding: 0cm"><p>If passed, will return
+				all events for emails containing this string in the email
+				recipient.</p>
+			</td>
+		</tr>
+		<tr>
+			<td style="border: none; padding: 0cm"><p>search_usernames</p>
+			</td>
+			<td style="border: none; padding: 0cm"><p>Array of strings</p>
+			</td>
+			<td style="border: none; padding: 0cm"><p>If passed, will return
+				all events for emails sent by this/these username/s.</p>
+			</td>
+		</tr>
+		<tr>
+			<td style="border: none; padding: 0cm"><p><span style="background: #ffff00">subaccounts</span></p>
+			</td>
+			<td style="border: none; padding: 0cm"><p><span style="background: #ffff00">Array
+				of strings</span></p>
+			</td>
+			<td style="border: none; padding: 0cm"><p><span style="background: #ffff00">If
+				passed, will return all events for emails sent by this/these
+				subaccount/s.</span></p>
+			</td>
+		</tr>
+		<tr>
+			<td style="border: none; padding: 0cm"><p>limit</p>
+			</td>
+			<td style="border: none; padding: 0cm"><p>int32</p>
+			</td>
+			<td style="border: none; padding: 0cm"><p>The maximum number of
+				events to return (Max: 1000).</p>
+			</td>
+		</tr>
+		<tr>
+			<td style="border: none; padding: 0cm"><p>continue_token</p>
+			</td>
+			<td style="border: none; padding: 0cm"><p>string</p>
+			</td>
+			<td style="border: none; padding: 0cm"><p>If passed, will continue
+				the search beyond the current page, using the same search
+				parameters.</p>
+			</td>
+		</tr>
+		<tr>
+			<td style="border: none; padding: 0cm"><p>only_latest</p>
+			</td>
+			<td style="border: none; padding: 0cm"><p>boolean</p>
+			</td>
+			<td style="border: none; padding: 0cm"><p>If true, will only
+				return the most recent event for each email returned. Default:
+				false.</p>
+			</td>
+		</tr>
+		<tr>
+			<td style="border: none; padding: 0cm"><p>only_latest_by_sent</p>
+			</td>
+			<td style="border: none; padding: 0cm"><p>boolean</p>
+			</td>
+			<td style="border: none; padding: 0cm"><p>If true, will only
+				return the most recent event for each email returned ordered by
+				sent date. Default: false</p>
+			</td>
+		</tr>
+		<tr>
+			<td style="border: none; padding: 0cm"><p>event_types</p>
+			</td>
+			<td style="border: none; padding: 0cm"><p>array of strings</p>
+			</td>
+			<td style="border: none; padding: 0cm"><p>If passed, will limit
+				the returned events to the provided event types.<br/>
+Values:
+				'processed', 'soft-bounced', 'hard-bounced', 'rejected', 'spam',
+				'delivered', 'unsubscribed', 'resubscribed', 'opened' and
+				'clicked.'</p>
+			</td>
+		</tr>
+		<tr>
+			<td style="border: none; padding: 0cm"><p>include_headers</p>
+			</td>
+			<td style="border: none; padding: 0cm"><p>boolean</p>
+			</td>
+			<td style="border: none; padding: 0cm"><p>Return the full email
+				headers with the response.</p>
+			</td>
+		</tr>
+		<tr>
+			<td style="border: none; padding: 0cm"><p>custom_headers</p>
+			</td>
+			<td style="border: none; padding: 0cm"><p>array of strings</p>
+			</td>
+			<td style="border: none; padding: 0cm"><p>A list of header keys to
+				parse out of the raw headers.</p>
+			</td>
+		</tr>
+	</tbody>
+</table>
+<p><br/>
+<br/>
+
+</p>
+</body>
+</html>

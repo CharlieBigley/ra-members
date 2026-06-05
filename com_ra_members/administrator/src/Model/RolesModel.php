@@ -152,7 +152,7 @@ class RolesModel extends ListModel
 		$query->join("LEFT", "#__ra_profiles AS p ON p.member_id=a.member_id");
         // For non full version, only show Roles for the current User's Group
         if (($group !== 'N') AND ($toolsHelper->isSuperuser() === false)) {
-             $query->where('a.group_code=' . $this->_db->quote($group));
+             $query->where('a.organisation_code=' . $this->_db->quote($group));
         }		
 
 		// Filter by search in title

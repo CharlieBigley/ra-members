@@ -1,6 +1,6 @@
 <?php
 /**
- * @version    CVS: 1.0.3
+ * @version    CVS: 1.1.3
  * @package    Com_Ra_members
  * @author     Charlie Bigley <charlie@bigley.me.uk>
  * @copyright  2026 Charlie Bigley
@@ -30,7 +30,7 @@ use \Joomla\CMS\Helper\ContentHelper;
 /**
  * Role table
  *
- * @since 1.0.3
+ * @since 1.1.3
  */
 class RoleTable extends Table implements VersionableTableInterface, TaggableTableInterface
 {
@@ -63,7 +63,7 @@ class RoleTable extends Table implements VersionableTableInterface, TaggableTabl
 	 *
 	 * @return  string  The alias as described above
 	 *
-	 * @since   1.0.3
+	 * @since   1.1.3
 	 */
 	public function getTypeAlias()
 	{
@@ -79,7 +79,7 @@ class RoleTable extends Table implements VersionableTableInterface, TaggableTabl
 	 * @return  boolean  True on success.
 	 *
 	 * @see     Table:bind
-	 * @since   1.0.3
+	 * @since   1.1.3
 	 * @throws  \InvalidArgumentException
 	 */
 	public function bind($array, $ignore = '')
@@ -88,35 +88,6 @@ class RoleTable extends Table implements VersionableTableInterface, TaggableTabl
 		$task = Factory::getApplication()->input->get('task');
 		$user = Factory::getApplication()->getIdentity();
 		
-
-		if ($array['id'] == 0 && empty($array['created_by']))
-		{
-			$array['created_by'] = Factory::getUser()->id;
-		}
-
-		if ($array['id'] == 0 && empty($array['modified_by']))
-		{
-			$array['modified_by'] = Factory::getUser()->id;
-		}
-
-		if ($task == 'apply' || $task == 'save')
-		{
-			$array['modified_by'] = Factory::getUser()->id;
-		}
-
-		// Support for empty date field: created
-		if($array['created'] == '0000-00-00' || empty($array['created']))
-		{
-			$array['created'] = NULL;
-			$this->created = NULL;
-		}
-
-		// Support for empty date field: modified
-		if($array['modified'] == '0000-00-00' || empty($array['modified']))
-		{
-			$array['modified'] = NULL;
-			$this->modified = NULL;
-		}
 
 		if (isset($array['params']) && is_array($array['params']))
 		{
@@ -171,11 +142,19 @@ class RoleTable extends Table implements VersionableTableInterface, TaggableTabl
 	 *
 	 * @return  boolean  True on success.
 	 *
-	 * @since   1.0.3
+	 * @since   1.1.3
 	 */
 	public function store($updateNulls = true)
 	{
-		
+        $user = Factory::getApplication()->getIdentity();
+        $date = Factory::getDate('now', Factory::getConfig()->get('offset'))->toSql(true);
+        if ($this->id == 0) {
+            $this->created = $date;
+            $this->created_by = $user->id;
+        } else {
+            $this->modified_by = $user->id;
+            $this->modified = $date;
+        }		
 		
 		return parent::store($updateNulls);
 	}

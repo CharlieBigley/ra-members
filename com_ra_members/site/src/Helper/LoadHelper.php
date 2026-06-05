@@ -4,13 +4,14 @@
  * Helper to load member data from the Central Office API feed
  * Usually run from a batch job via cron, but can be invoked from the view organisations
  *
- * If run on-line, messages are display directly; if in batch mode, messages are
+ * If run on-line, messages are displayed directly; if in batch mode, messages are
  * stored in arrays for later display
  *
  * @version    4.7.0
  * @package    com_ra_members
  * @author     charles
  * 18/04/26 CB created
+ * 05/06/26 CB include expired members
  */
 
 namespace Ramblers\Component\Ra_members\Site\Helper;
@@ -35,12 +36,13 @@ class LoadHelper {
     protected $auditColumns;
     protected $roleColumns;
     private $counter = 0;
-    public $online_mode = false;
+    public $batch_mode = false; // if true, messages are added to $this->messages instead of enqueued, for display at the end of the batch process
     public $comments;
     public $comment_count;
-    public $errors;
     public $count_new = 0;
+    public $count_not_updated = 0;
     public $count_updated = 0;
+    public $errors;
     public $messages = array();
 
     public function __construct() {
@@ -117,89 +119,104 @@ class LoadHelper {
         return array_values($roleRows);
     }
 
-    public function checkEmail($email, $member_id, $user_id){ 
-    /*
-    This is invoked when a new profile record has been created. However, it is possible that a matching user record was 
-    already present for this email. If that was the case, the pre-existing profile can be deleted, and the newly created 
-    profile linked to the existing user record.
+    public function checkEmail($email, $member_id, $profile_id) {
+        /*
+          Ensure the profile is linked to a Joomla user record for this email address.
 
-    If the user record was present, any pre-existing profile can be deleted.
+          For a newly created profile, reuse an existing Joomla user if one already exists for
+          the email address; otherwise create a new user. In either case, link the profile to
+          that user and create a subscription to the default mailing list.
 
-    If a user record was not present, one must be created, and it's id stored on the profile record. Furthermore, 
-    a 'subscription' record is required to link the new user record to the default list for the profile's group.
+          For an existing linked profile, only the Joomla user email should need updating.
 
-    member_id refers to the current profile record, which could be either an existing record that has just been updated, 
-    or a newly created one. However, there may or may not be a pre-existing record (created manually)
-
-    user_id is from this profile record. It could be zero if the profile has just been created, or if the profile record 
-    had no email associated with it
-    */
-//echo 'checkEmail for email ' . $email . ', member_id=' . $member_id . ', user_id=' . $user_id . '<br>';
-
-    // see if an existing user record exists
-    $existing_user = $this->lookupUser($email);
- //   var_dump($existing_user);
- //   echo '<br>';
- //   return;
-    if (is_null($user_id) || $user_id == 0) {
-        if ($existing_user->id){
-            $this->messages[]= 'Existing user record with id ' . $existing_user->id . ' for email ' . $email;
-            // delete any pre-existing profile record
-            $this->purgeProfile($existing_user->id);
-            // update the profile record
-            $sql = 'UPDATE #__ra_profiles SET id=' . $existing_user->id;
-            $sql .= ' WHERE member_id=' . $member_id;
-            echo $sql . '<br>';
-            $this->toolsHelper->executeCommand($sql);
-        } else {
-            // create a new User record
-            $userHelper = new UserHelper;
-            $userHelper->name = $this->lookupPreferredName($member_id);
-            $userHelper->email = $email;
-            $userHelper->createUserDirect();
-            $user_id = $userHelper->user_id;
-            $this->messages[]= 'Created new user record with id ' . $user_id . ' for email ' . $email;
-            // update the profile record    
-            $sql = 'UPDATE #__ra_profiles SET id=' . $user_id;
-            $sql .= ' WHERE member_id=' . $member_id;
-            echo $sql . '<br>';
-            $this->toolsHelper->executeCommand($sql);
+          This method assumes lookupUser() returns either a user object or null. If the shared
+          ToolsHelper::getItem() helper returns false for SQL failures, that needs handling in
+          the shared helper before callers can safely distinguish "not found" from "query failed".
+         */
+        if (JDEBUG) {
+            $message = 'Checking email ' . $email . ' for member id ' . $member_id . ', profile id ' . $profile_id;
+            echo $message . '<br>';
+            $this->messages[] = $message;
         }
-        // Create a subscription to the primary mailing list
-        $primary_list = $this->getDefaultList($member_id);
-        if ($primary_list) {
-            if ($this->mailHelper->subscribe($primary_list, $user_id, 1, 3)) {
-                $this->messages[] = 'Subscription created to list ' . $primary_list;
+        // see if an existing user record exists
+        $existing_user = $this->lookupUser($email);
+        if ($existing_user === false) {
+            $this->messages[] = 'Error looking up Joomla user for email ' . $email . ': ' . $this->toolsHelper->error;
+            return false;
+        }
+        //   var_dump($existing_user);
+        //   echo '<br>';
+        //   return;
+        if (is_null($profile_id) || $profile_id == 0) {
+            if (is_object($existing_user) && !empty($existing_user->id)) {
+                $user_id = $existing_user->id;
+                if (JDEBUG) {
+                    $message = 'Existing user record found with id ' . $user_id . ' for email ' . $email;
+                    echo $message . '<br>';
+                    $this->messages[] = $message;
+                }
+                // delete any pre-existing profile record
+                $this->purgeProfile($existing_user->id);
+                // update the profile record
+                $sql = 'UPDATE #__ra_profiles SET id=' . $existing_user->id;
+                $sql .= ' WHERE member_id=' . $member_id;
+                echo $sql . '<br>';
+                $this->toolsHelper->executeCommand($sql);
             } else {
-                $this->messages[] = 'Error creating subscription to list ' . $primary_list . ': ' . $this->mailHelper->message;
+                // create a new User record
+                $userHelper = new UserHelper;
+                $userHelper->name = $this->lookupPreferredName($member_id);
+                $userHelper->email = $email;
+                $userHelper->createUserDirect();
+                $user_id = $userHelper->user_id;
+                if (JDEBUG) {
+                    $message = 'Created new user record with id ' . $user_id . ' for email ' . $email;
+                    echo $message . '<br>';
+                    $this->messages[] = $message;
+                    echo 'Updating profile record with id ' . $profile_id . ' to link to user record with id ' . $user_id . '<br>';
+                }
+                // update the profile record
+                $sql = 'UPDATE #__ra_profiles SET id=' . $user_id;
+                $sql .= ' WHERE member_id=' . $member_id;
+                echo $sql . '<br>';
+                $this->toolsHelper->executeCommand($sql);
+            }
+            // Create a subscription to the primary mailing list
+            $primary_list = $this->getDefaultList($member_id);
+            if ($primary_list) {
+                if ($this->mailHelper->subscribe($primary_list, $user_id, 1, 3)) {
+                    $this->messages[] = 'Subscription created to list ' . $primary_list;
+                } else {
+                    $this->messages[] = 'Error creating subscription to list ' . $primary_list . ': ' . $this->mailHelper->message;
+                }
+            } else {
+                $this->messages[] = 'No default list found for member id ' . $member_id;
             }
         } else {
-            $this->messages[] = 'No default list found for member id ' . $member_id;
+            // we have a valid profile_id - update the email address if needed
+            // check that the email address has not been updated
+            if (is_null($existing_user) || $existing_user->email !== $email) {
+                $user_id = (int) $profile_id;
+                $sql = 'UPDATE #__users SET email=' . $this->db->quote($email);
+// $sql .=
+                $sql .= ' WHERE id=' . $user_id;
+                echo $sql . '<br>';
+                $this->toolsHelper->executeCommand($sql);
+                if (is_object($existing_user)) {
+                    $this->messages[] = 'Updated email address from ' . $existing_user->email . ' to ' . $email . ' for user record with id ' . $user_id;
+                } else {
+                    $this->messages[] = 'Updated email address to ' . $email . ' for user record with id ' . $user_id;
+                }
+            }
         }
-
-    } else {
-        // check that the email address has not been updated
-        if ($existing_user->email !== $email){
-            $sql = 'UPDATE #__users SET email=' . $this->db->quote($email);
-// $sql .= 
-            $sql .= ' WHERE id=' . $user_id;
-            echo $sql . '<br>';
-            $this->toolsHelper->executeCommand($sql);
-            $this->messages[]= 'Updated email address from ' . $existing_user->email . ' to ' . $email . ' for user record with id ' . $user_id;
-        }
-    }
-
-
-
         return true;
     }
-
 
     private function doesMemberExist($salesforceId) {
         return $this->getProfileBySalesforceId($salesforceId);
     }
 
-        private function firstWord($token) {
+    private function firstWord($token) {
         $token = trim((string) $token);
 
         if ($token === '') {
@@ -218,8 +235,6 @@ class LoadHelper {
 
         return substr($token, 0, $space);
     }
-
-
 
     private function formatDateForDatabase($value) {
         if ($value === null) {
@@ -251,7 +266,6 @@ class LoadHelper {
         return $this->auditColumns;
     }
 
-
     private function getCurrentUserId() {
         $user = $this->app->getSession()->get('user');
 
@@ -262,7 +276,7 @@ class LoadHelper {
         return 0;
     }
 
-    public function getDefaultList($member_id){
+    public function getDefaultList($member_id) {
         $sql = 'SELECT DISTINCT l.id FROM #__ra_mail_lists AS l ';
         $sql .= 'LEFT JOIN #__ra_profiles AS p1 ON p1.home_group=l.group_code ';
         $sql .= 'LEFT JOIN #__ra_profiles AS p2 ON p2.home_group=l.group_primary ';
@@ -270,19 +284,23 @@ class LoadHelper {
         return $this->toolsHelper->getValue($sql);
     }
 
-    public function getJson($code){
+    public function getJson($code) {
         $endpoint = '/api/groups/' . $code . '/members';
-       /*
-        $site_id is the id of the record in api_sites
-        $endpoint is the project_code/view_name (e.g. /api/index.php/v1/ra_events/events)
-        Derived from EventsHelper/getRemoteEvents, but generalised
+        /*
+          $site_id is the id of the record in api_sites
+          $endpoint is the project_code/view_name (e.g. /api/index.php/v1/ra_events/events)
+          Derived from EventsHelper/getRemoteEvents, but generalised
          */
         $sql = 'SELECT * FROM #__ra_api_sites WHERE title="' . $code . '"';
         $site = $this->toolsHelper->getItem($sql);
-        if (is_null($site)){
+        if ($site === false) {
+            $this->messages[] = 'Error looking up API site for code ' . $code . ': ' . $this->toolsHelper->error;
+            return false;
+        }
+        if (is_null($site)) {
             $this->messages[] = 'No API site found for code ' . $code;
             return false;
-        }   
+        }
         $token = trim($site->token);
 
         $baseUrl = rtrim(trim((string) $site->url), '/');
@@ -290,6 +308,9 @@ class LoadHelper {
         $baseUrl = preg_replace('#/api$#', '', $baseUrl);
 
         $url = $baseUrl . $endpoint;
+
+        // Force inclusion of records even if expriry date hase passed
+        $url .= '?includeExpired=true';
 
         $error = '';
         $responseHeaders = '';
@@ -335,15 +356,15 @@ class LoadHelper {
         $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
         if ($responseData == false) {
             $error = curl_error($curl);
-            
+
             if ($httpCode !== 200) {
                 $message = 'Error: ' . $httpCode;
                 $message .= ', ' . $error;
                 if ($this->toolsHelper->isSuperuser()) {
                     $message .= ' ' . $url;
-                }           
+                }
                 $this->messages[] = $message;
-                $this->messages[] = 'Error ' . $error ;
+                $this->messages[] = 'Error ' . $error;
                 return false;
             }
         }
@@ -357,7 +378,7 @@ class LoadHelper {
             if ($httpCode == 401) {
                 $message .= 'Authorization Required (Token missing or invalid)';
             } else {
-                $message .=  $error;
+                $message .= $error;
             }
             $this->messages[] = $message;
             $this->messages[] = 'Endpoint: ' . $url;
@@ -371,15 +392,14 @@ class LoadHelper {
             $this->messages[] = 'JSON decode error: ' . json_last_error_msg();
         }
         if (JDEBUG) {
- //           echo '<b>Start of details</b><br>';
- //           var_dump($details);
- //           echo '<br><b>End of details</b><br>';
- //           echo '<b>Start of response</b><br>';
- //           echo $responseData;
- //           echo '<br>========<br>';   
+            //           echo '<b>Start of details</b><br>';
+            //           var_dump($details);
+            //           echo '<br><b>End of details</b><br>';
+            //           echo '<b>Start of response</b><br>';
+            //           echo $responseData;
+            //           echo '<br>========<br>';
         }
         return $details;
-
     }
 
     private function getProfileBySalesforceId($salesforceId) {
@@ -414,6 +434,7 @@ class LoadHelper {
 
         return 0;
     }
+
     private function getRoleColumns() {
         if ($this->roleColumns === null) {
             $this->roleColumns = $this->db->getTableColumns('#__ra_roles', false);
@@ -427,7 +448,7 @@ class LoadHelper {
         return $this->toolsHelper->getValue($sql);
     }
 
-    private function lookupUser($email){
+    private function lookupUser($email) {
         $sql = 'SELECT id, name, username, email FROM #__users WHERE email=';
         $sql .= $this->db->quote($email);
         return $this->toolsHelper->getItem($sql);
@@ -459,23 +480,50 @@ class LoadHelper {
         return ($value === '') ? null : $value;
     }
 
-    private function normaliseEnumValue($value, array $allowedValues) {
+    private function normaliseEnumValue($value, array $allowedValues, $fieldName, $fallbackValue = null) {
         $value = $this->normaliseScalar($value);
 
         if ($value === null) {
             return null;
         }
 
-        $value = strtolower($value);
-        $allowedValues = array_map('strtolower', $allowedValues);
+        $lowerValue = strtolower($value);
 
-        return in_array($value, $allowedValues, true) ? $value : $value;
+        foreach ($allowedValues as $allowedValue) {
+            if ($lowerValue === strtolower($allowedValue)) {
+                return $allowedValue;
+            }
+        }
+
+        $fallback = $allowedValues[0] ?? null;
+
+        if ($fallbackValue !== null) {
+            foreach ($allowedValues as $allowedValue) {
+                if (strtolower($fallbackValue) === strtolower($allowedValue)) {
+                    $fallback = $allowedValue;
+                    break;
+                }
+            }
+        }
+
+        $message = 'Unknown ' . $fieldName . ' value "' . $value . '" from feed';
+
+        if ($fallback !== null) {
+            $message .= '; using fallback "' . $fallback . '"';
+        }
+
+        $this->messages[] = $message;
+        $this->logMessage($message, '3');
+
+        return $fallback;
     }
 
-    private function purgeProfile($id){
+    private function purgeProfile($id) {
         // Deletes profile record and audit records
-        $sql = 'DELETE FROM #__ra_profiles_audit WHERE object_id=' . $id; $this->toolsHelper->executeCommand($sql);
-        $sql = 'DELETE FROM #__ra_profiles WHERE id=' . $id; $this->toolsHelper->executeCommand($sql);
+        $sql = 'DELETE FROM #__ra_profiles_audit WHERE object_id=' . $id;
+        $this->toolsHelper->executeCommand($sql);
+        $sql = 'DELETE FROM #__ra_profiles WHERE id=' . $id;
+        $this->toolsHelper->executeCommand($sql);
     }
 
     private function quoteValue($value) {
@@ -512,7 +560,7 @@ class LoadHelper {
             'memberType' => 'memberType',
             'memberTerm' => 'memberTerm',
             'memberStatus' => 'memberStatus',
-            'type' => 'type',
+            'membershipArrangement' => 'membershipArrangement',
             'jointWith' => 'jointWith',
             'areaName' => 'areaName',
             'affiliateMemberPrimaryGroup' => 'affiliateMemberPrimaryGroup',
@@ -526,36 +574,55 @@ class LoadHelper {
 
         if (array_key_exists('memberStatus', $columns)) {
             $data['memberStatus'] = $this->normaliseEnumValue(
-                $member['memberStatus'] ?? null,
-                array('active', 'payment pending')
+                    $member['memberStatus'] ?? null,
+                    array('Active', 'Payment Pending'),
+                    'memberStatus',
+                    'Payment Pending'
             );
         }
 
         if (array_key_exists('memberTerm', $columns)) {
             $data['memberTerm'] = $this->normaliseEnumValue(
-                $member['memberTerm'] ?? null,
-                array('annual', 'life')
+                    $member['memberTerm'] ?? null,
+                    array('Annual', 'Life'),
+                    'memberTerm',
+                    'Annual'
             );
         }
 
         if (array_key_exists('memberType', $columns)) {
             $data['memberType'] = $this->normaliseEnumValue(
-                $member['memberType'] ?? null,
-                array('single', 'joint')
+                    $member['memberType'] ?? null,
+                    array('Member', 'Affiliate'),
+                    'memberType',
+                    'Single'
             );
         }
 
         if (array_key_exists('membershipType', $columns)) {
             $data['membershipType'] = $this->normaliseEnumValue(
-                $member['membershipType'] ?? null,
-                array('member', 'affiliate')
+                    $member['membershipType'] ?? null,
+                    array('Single', 'Joint'),
+                    'membershipType',
+                    'Affiliate'
+            );
+        }
+
+        if (array_key_exists('membershipArrangement', $columns)) {
+            $data['membershipArrangement'] = $this->normaliseEnumValue(
+                    $member['membershipArrangement'] ?? $member['membershipType'] ?? null,
+                    array('Individual', 'Joint'),
+                    'membershipArrangement',
+                    'Affiliate'
             );
         }
 
         if (array_key_exists('type', $columns)) {
             $data['type'] = $this->normaliseEnumValue(
-                $member['membershipType'] ?? $member['type'] ?? null,
-                array('member', 'affiliate')
+                    $member['membershipType'] ?? $member['type'] ?? null,
+                    array('Member', 'Affiliate'),
+                    'type',
+                    'Affiliate'
             );
         }
 
@@ -568,18 +635,28 @@ class LoadHelper {
         }
 
         $dateFields = array(
-            'membershipExpiryDate' => 'membershipExpiryDate',
-            'ramblersJoinDate' => 'ramblersJoinDate',
-            'areaJoinedDate' => 'areaJoinedDate',
-            'groupJoinedDate' => 'groupJoinedDate',
-            'emailPermissionLastUpdated' => 'emailPermissionLastUpdated',
-            'postPermissionLastUpdated' => 'postPermissionLastUpdated',
-            'telephonePermissionLastUpdated' => 'telephonePermissionLastUpdated',
+            'membershipExpiryDate' => array('membershipExpiryDate'),
+            // Interim measure: accept both feed names until all sites emit ramblersJoinedDate.
+            'ramblersJoinedDate' => array('ramblersJoinedDate', 'ramblersJoinDate'),
+            'areaJoinedDate' => array('areaJoinedDate'),
+            'groupJoinedDate' => array('groupJoinedDate'),
+            'emailPermissionLastUpdated' => array('emailPermissionLastUpdated'),
+            'postPermissionLastUpdated' => array('postPermissionLastUpdated'),
+            'telephonePermissionLastUpdated' => array('telephonePermissionLastUpdated'),
         );
 
-        foreach ($dateFields as $inputField => $columnName) {
-            if (array_key_exists($columnName, $columns)) {
-                $data[$columnName] = $this->formatDateForDatabase($member[$inputField] ?? null);
+        foreach ($dateFields as $columnName => $inputFields) {
+            if (!array_key_exists($columnName, $columns)) {
+                continue;
+            }
+
+            foreach ($inputFields as $inputField) {
+                $formattedDate = $this->formatDateForDatabase($member[$inputField] ?? null);
+
+                if ($formattedDate !== null) {
+                    $data[$columnName] = $formattedDate;
+                    break;
+                }
             }
         }
 
@@ -612,55 +689,7 @@ class LoadHelper {
             return;
         }
 
-
-        $this->toolsHelper->createAuditRecord($field_name, $oldValue, $newValue, $objectId, 'ra_profiles');
-        return;
-
-        $columns = $this->getAuditColumns();
-        $query = $this->db->getQuery(true)
-                ->insert($this->db->quoteName('#__ra_profiles_audit'));
-
-        $sets = array(
-            $this->db->quoteName('object_id') . ' = ' . (int) $objectId,
-            $this->db->quoteName('record_type') . ' = ' . $this->db->quote($recordType),
-        );
-
-        if (array_key_exists('field_name', $columns)) {
-            $sets[] = $this->db->quoteName('field_name') . ' = ' . $this->db->quote($fieldName);
-        }
-
-        if (array_key_exists('old_value', $columns)) {
-            $sets[] = $this->db->quoteName('old_value') . ' = ' . $this->quoteValue($this->normaliseScalar($oldValue));
-        }
-
-        if (array_key_exists('new_value', $columns)) {
-            $sets[] = $this->db->quoteName('new_value') . ' = ' . $this->quoteValue($this->normaliseScalar($newValue));
-        }
-
-        if (array_key_exists('field_value', $columns)) {
-            $payload = array('old' => $oldValue, 'new' => $newValue);
-
-            if ($recordType === 'C') {
-                $payload = $newValue;
-            }
-
-            $sets[] = $this->db->quoteName('field_value') . ' = ' . $this->quoteValue(json_encode($payload));
-        }
-
-        if (array_key_exists('created_by', $columns)) {
-            $sets[] = $this->db->quoteName('created_by') . ' = ' . (int) $this->getCurrentUserId();
-        }
-
-        if (array_key_exists('date_amended', $columns)) {
-            $sets[] = $this->db->quoteName('date_amended') . ' = ' . $this->db->quote(Factory::getDate('now', Factory::getConfig()->get('offset'))->toSql(true));
-        }
-
-        if (array_key_exists('created', $columns)) {
-            $sets[] = $this->db->quoteName('created') . ' = ' . $this->db->quote(Factory::getDate('now', Factory::getConfig()->get('offset'))->toSql(true));
-        }
-
-        $query->set($sets);
-        $this->db->setQuery($query)->execute();
+        $this->toolsHelper->createAuditRecord($fieldName, $oldValue, $newValue, $objectId, 'ra_profiles');
     }
 
     private function insertProfile($data) {
@@ -702,8 +731,6 @@ class LoadHelper {
         return $this->getProfileBySalesforceId($data['salesforceId']);
     }
 
-
-
     private function syncRoles($profile, $member) {
         $columns = $this->getRoleColumns();
 
@@ -734,10 +761,10 @@ class LoadHelper {
                         $this->db->quoteName('role'),
                     ))
                     ->values(
-                        (int) $roleRow['member_id'] . ','
-                        . $this->db->quote($roleRow['organisation_code']) . ','
-                        . $this->db->quote($roleRow['role'])
-                    );
+                    (int) $roleRow['member_id'] . ','
+                    . $this->db->quote($roleRow['organisation_code']) . ','
+                    . $this->db->quote($roleRow['role'])
+            );
 
             $this->db->setQuery($query)->execute();
         }
@@ -747,21 +774,21 @@ class LoadHelper {
 
         $member = $this->normaliseMember($member);
         $salesforceId = $this->normaliseScalar($member['salesforceId'] ?? null);
-         if (JDEBUG) {
-             $this->messages[]= 'Syncing member with Salesforce ID: ' . $salesforceId;
-         }
+        if (JDEBUG) {
+            $this->messages[] = 'Syncing member with Salesforce ID: ' . $salesforceId;
+        }
 
-         if ($salesforceId === null) {
-             $this->logMessage('Skipped record without salesforceId', '3');
-             return false;
-         }
+        if ($salesforceId === null) {
+            $this->logMessage('Skipped record without salesforceId', '3');
+            return false;
+        }
 
         $data = $this->mapMemberToProfileData($member);
-        
+
 //         if (JDEBUG) {
 //            var_dump($data);
 //             echo '<br>';
-//         }  
+//         }
         $profile = $this->getProfileBySalesforceId($salesforceId);
 
         if ($profile === null) {
@@ -773,13 +800,15 @@ class LoadHelper {
             }
             // Find the new profile record, to get the member_id for the audit record
             $profile = $this->getProfileBySalesforceId($salesforceId);
-            $this->messages[]= 'Created new profile for Salesforce ID: ' . $salesforceId . ' with member_id ' . $profile->member_id;
+            $this->messages[] = 'Created new profile for Salesforce ID: ' . $salesforceId . ' with member_id ' . $profile->member_id;
             $this->count_new++;
             $this->createProfileAudit($this->getProfileReference($profile), 'C', '', null, '');
         } else {
             $changes = $this->updateProfile($profile, $data);
 
-            if (!empty($changes)) {
+            if (empty($changes)) {
+                $this->count_not_updated++;
+            } else {
                 $this->count_updated++;
 
                 foreach ($changes as $fieldName => $change) {
@@ -792,7 +821,7 @@ class LoadHelper {
 
         $this->syncRoles($profile, $member);
 //var_dump($profile);
-//echo '<br><br>';    
+//echo '<br><br>';
         if (!empty($member['email'])) {
             $this->checkEmail($member['email'], $profile->member_id, $profile->id);
         }
@@ -800,22 +829,28 @@ class LoadHelper {
         return true;
     }
 
-    public function loadMembers($code='NS03') {
-        $this->logMessage('Processing ' . $code,1);    
+    public function loadMembers($code = 'NS03') {
+        $startedAt = Factory::getDate('now', Factory::getConfig()->get('offset'))->toSql(true);
+
+        $this->logMessage('Processing ' . $code, 1);
         $this->messages = array();
         $members = $this->getJson($code);
-        if ($members === false){
-             $this->messages[] = 'getJson was false for ' . $code;
+        if ($members === false) {
+            $this->messages[] = 'getJson was false for ' . $code;
             return false;
         }
- //       die('Load members for ' . $code . ', got ' . count($members) . ' records');
+        //       die('Load members for ' . $code . ', got ' . count($members) . ' records');
         $count = $this->processMembers($members);
+        $this->updateOrganisationLastUpdated($code, $startedAt);
         $this->messages[] = $count . ' records processed for ' . $code;
-        if ($count > 0){
-            $this->messages[] = 'New records ' . $this->count_new . ', Updated records ' . $this->count_updated;
+        if ($count > 0) {
+            $this->messages[] = 'New records ' . $this->count_new . ', Updated records '
+                    . $this->count_updated . ', Not updated records ' . $this->count_not_updated
+                    . ', Watermark ' . $startedAt;
         }
         return;
-    }   
+    }
+
     /**
      *   Store a log entry
      */
@@ -826,19 +861,19 @@ class LoadHelper {
         $query->insert('#__ra_logfile')
                 ->set("record_type = " . $this->db->quote($record_type))
                 ->set("message = " . $this->db->quote($text))
-                ->set("sub_system = 'RA Mailman'" )
+                ->set("sub_system = 'RA Mailman'")
                 ->set("ref = " . $this->db->quote('LoadMemb'))
         ;
 
         $result = $this->db->setQuery($query)->execute();
     }
 
-    public function processMembers($members){
+    public function processMembers($members) {
         $count = 0;
         $this->count_new = 0;
         $this->count_updated = 0;
-    //var_dump($members);
-    //echo '<br>';
+        //var_dump($members);
+        //echo '<br>';
         if (is_object($members) && isset($members->members)) {
             $members = $members->members;
         } elseif (is_array($members) && isset($members['members'])) {
@@ -850,13 +885,26 @@ class LoadHelper {
             return 0;
         }
 
-        foreach($members as $member){
+        foreach ($members as $member) {
+//            if ($count == 0){
+//                var_dump($member);
+//                echo '<br>';
+//            }
             if ($this->syncMember($member)) {
                 $count++;
             }
         }
 
         return $count;
+    }
+
+    private function updateOrganisationLastUpdated($code, $startedAt) {
+        $query = $this->db->getQuery(true)
+                ->update($this->db->quoteName('#__ra_organisations'))
+                ->set($this->db->quoteName('last_updated') . ' = ' . $this->db->quote($startedAt))
+                ->where($this->db->quoteName('code') . ' = ' . $this->db->quote($code));
+
+        $this->db->setQuery($query)->execute();
     }
 
     private function updateProfile($profile, $data) {
@@ -901,8 +949,8 @@ class LoadHelper {
         return $changes;
     }
 
-
     private function valuesDiffer($oldValue, $newValue) {
         return $this->normaliseScalar($oldValue) !== $this->normaliseScalar($newValue);
     }
+
 }

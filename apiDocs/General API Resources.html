@@ -1,0 +1,746 @@
+For AI agents: visit https://developers.smtp2go.com/llms.txt for an
+index of all pages formatted in Markdown and endpoints in OpenAPI.
+Jump to Content <#content>
+SMTP2GO-API-Docs <https://developers.smtp2go.com/docs>
+
+/
+
+/Guides <https://developers.smtp2go.com/docs>
+/
+
+/API Reference <https://developers.smtp2go.com/reference>
+v3.0.4
+------------------------------------------------------------------------
+Log In <https://developers.smtp2go.com/login?redirect_uri=/reference/
+general-api-resources>SMTP2GO-API-Docs <https://developers.smtp2go.com/docs>
+/
+
+/API Reference
+Log In <https://developers.smtp2go.com/login?redirect_uri=/reference/
+general-api-resources>
+
+v3.0.4
+/
+
+/Guides <https://developers.smtp2go.com/docs>
+/
+
+/API Reference <https://developers.smtp2go.com/reference>
+
+General API Resources
+
+Search
+CTRL-K
+
+JUMP TO
+CTRL-/
+
+
+    SMTP2GO API v3.0.4
+
+  * General API Resources <https://developers.smtp2go.com/reference/
+    general-api-resources>
+  * Authentication <https://developers.smtp2go.com/reference/authentication>
+  * Changelog <https://developers.smtp2go.com/reference/changelog>
+
+
+    ACTIVITY
+
+  * Search activitypost <https://developers.smtp2go.com/reference/
+    search-activity>
+
+
+    ALLOWED SENDERS
+
+  * Add allowed senderspost <https://developers.smtp2go.com/reference/
+    add-allowed-senders>
+  * Update allowed senderspost <https://developers.smtp2go.com/
+    reference/update-allowed-senders>
+  * View allowed senderspost <https://developers.smtp2go.com/reference/
+    view-allowed-senders>
+  * Remove allowed senderspost <https://developers.smtp2go.com/
+    reference/remove-allowed-senders>
+
+
+    ALLOWED RECIPIENTS
+
+  * Add allowed recipientspost <https://developers.smtp2go.com/
+    reference/add-allowed-recipients>
+  * Update allowed recipientspost <https://developers.smtp2go.com/
+    reference/update-allowed-recipients>
+  * View allowed recipientspost <https://developers.smtp2go.com/
+    reference/view-allowed-recipients>
+  * Remove allowed recipientspost <https://developers.smtp2go.com/
+    reference/remove-allowed-recipients>
+
+
+    API KEYS
+
+  * View API Keyspost <https://developers.smtp2go.com/reference/view-
+    api-keys>
+  * Add a new API keypost <https://developers.smtp2go.com/reference/add-
+    api-key>
+  * Edit an API keypost <https://developers.smtp2go.com/reference/edit-
+    api-key>
+  * Remove an API keypost <https://developers.smtp2go.com/reference/
+    remove-api-key>
+  * View Permissionspost <https://developers.smtp2go.com/reference/view-
+    api-key-permissions>
+  * Patch an API keypatch <https://developers.smtp2go.com/reference/
+    patch-api-key>
+
+
+    DEDICATED IPS
+
+  * View Dedicated IP Addressespost <https://developers.smtp2go.com/
+    reference/view-dedicated-ips>
+
+
+    EMAILS
+
+  * Send a standard emailpost <https://developers.smtp2go.com/reference/
+    send-standard-email>
+  * Send a MIME emailpost <https://developers.smtp2go.com/reference/
+    send-mime-email>
+  * Send a batch of emailspost <https://developers.smtp2go.com/
+    reference/send-email-batch>
+  * View and search sent emails
+
+    post <https://developers.smtp2go.com/reference/view-sent-emails>
+  * Search schedule emailspost <https://developers.smtp2go.com/
+    reference/search-scheduled-emails>
+  * Remove a scheduled emailpost <https://developers.smtp2go.com/
+    reference/remove-scheduled-emails>
+
+
+    EMAIL ARCHIVE
+
+  * Adjusting archives <https://developers.smtp2go.com/reference/email-
+    archive>
+  * Search archived contentpost <https://developers.smtp2go.com/
+    reference/search-archived-pages>
+  * View an archived emailpost <https://developers.smtp2go.com/
+    reference/view-an-archived-email>
+
+
+    IP ALLOW LIST
+
+  * IP Allow Listpost <https://developers.smtp2go.com/reference/ip-
+    allowlist>
+  * View IP Allow Listpost <https://developers.smtp2go.com/reference/
+    view-ip-allowlist>
+  * Add IP Allow Listpost <https://developers.smtp2go.com/reference/add-
+    ip-allowlist>
+  * Edit IP Allow Listpost <https://developers.smtp2go.com/reference/
+    edit-ip-allowlist>
+  * Remove IP Allow Listpost <https://developers.smtp2go.com/reference/
+    remove-ip-allowlist>
+
+
+    IP AUTH
+
+  * View IP Authpost <https://developers.smtp2go.com/reference/view-ip-auth>
+  * Patch an IP Authpatch <https://developers.smtp2go.com/reference/
+    patch-ip-auth>
+  * Remove an IP Authpost <https://developers.smtp2go.com/reference/
+    remove-ip-auth>
+
+
+    SENDER DOMAINS
+
+  * Add a sender domainpost <https://developers.smtp2go.com/reference/
+    add-sender-domain>
+  * Edit the tracking subdomainpost <https://developers.smtp2go.com/
+    reference/edit-tracking-domain>
+  * Edit the return-path subdomainpost <https://developers.smtp2go.com/
+    reference/edit-return-path-domain>
+  * Edit subaccount accesspost <https://developers.smtp2go.com/
+    reference/edit-subaccount-access>
+  * Verify a sender domainpost <https://developers.smtp2go.com/
+    reference/verify-a-sender-domain>
+  * View sender domainspost <https://developers.smtp2go.com/reference/
+    view-sender-domains>
+  * Remove a sender domainpost <https://developers.smtp2go.com/
+    reference/remove-sender-domain>
+
+
+    SINGLE SENDER EMAILS
+
+  * Add a single sender emailpost <https://developers.smtp2go.com/
+    reference/add-a-single-sender-email>
+  * View single sender emailspost <https://developers.smtp2go.com/
+    reference/view-all-single-sender-emails>
+  * Remove a single sender emailpost <https://developers.smtp2go.com/
+    reference/remove-a-single-sender-email>
+
+
+    SMS
+
+  * Send SMSpost <https://developers.smtp2go.com/reference/send-sms>
+  * View received SMSpost <https://developers.smtp2go.com/reference/
+    view-received-sms>
+  * View sent SMSpost <https://developers.smtp2go.com/reference/view-
+    sent-sms>
+  * SMS Summarypost <https://developers.smtp2go.com/reference/sms-summary>
+
+
+    SMTP USERS
+
+  * Add an SMTP userpost <https://developers.smtp2go.com/reference/add-
+    an-smtp-user>
+  * Edit SMTP user detailspost <https://developers.smtp2go.com/
+    reference/edit-an-smtp-user>
+  * Patch an SMTP userpatch <https://developers.smtp2go.com/reference/
+    patch-an-smtp-user>
+  * Remove an SMTP userpost <https://developers.smtp2go.com/reference/
+    remove-an-smtp-user>
+  * View SMTP userspost <https://developers.smtp2go.com/reference/view-
+    smtp-users>
+
+
+    STATISTICS
+
+  * Email bouncespost <https://developers.smtp2go.com/reference/email-
+    bounces>
+  * Email cyclepost <https://developers.smtp2go.com/reference/email-cycle>
+  * Email historypost <https://developers.smtp2go.com/reference/email-
+    history>
+  * Email spampost <https://developers.smtp2go.com/reference/email-spam>
+  * Email summarypost <https://developers.smtp2go.com/reference/email-
+    summary>
+  * Email unsubscribespost <https://developers.smtp2go.com/reference/
+    email-unsubscribes>
+
+
+    SUBACCOUNTS
+
+  * Add a subaccountpost <https://developers.smtp2go.com/reference/add-
+    subaccount>
+  * Update a subaccountpost <https://developers.smtp2go.com/reference/
+    update-a-subaccount>
+  * View subaccountspost <https://developers.smtp2go.com/reference/
+    search-subaccounts>
+  * Close a subaccountpost <https://developers.smtp2go.com/reference/
+    close-a-subaccount>
+  * Reopen a closed subaccountpost <https://developers.smtp2go.com/
+    reference/reopen-a-closed-subaccount>
+  * Resend subaccount invitationpost <https://developers.smtp2go.com/
+    reference/resend-subaccount-invitation>
+
+
+    SUPPRESSIONS
+
+  * Add a suppressionpost <https://developers.smtp2go.com/reference/add-
+    a-suppression>
+  * View suppressionspost <https://developers.smtp2go.com/reference/
+    view-suppressions>
+  * Remove a suppressionpost <https://developers.smtp2go.com/reference/
+    remove-a-suppression>
+
+
+    TEMPLATES
+
+  * Add an email templatepost <https://developers.smtp2go.com/reference/
+    add-an-email-template>
+  * Update an email templatepost <https://developers.smtp2go.com/
+    reference/update-an-email-template>
+  * Remove an email templatepost <https://developers.smtp2go.com/
+    reference/remove-an-email-template>
+  * View email templatespost <https://developers.smtp2go.com/reference/
+    search-email-templates>
+  * View template detailspost <https://developers.smtp2go.com/reference/
+    view-template-details>
+
+
+    WEBHOOKS
+
+  * View Webhookspost <https://developers.smtp2go.com/reference/view-
+    webhook>
+  * Add a new Webhookpost <https://developers.smtp2go.com/reference/add-
+    webhook>
+  * Edit a specified Webhookpost <https://developers.smtp2go.com/
+    reference/edit-webhook>
+  * Remove a specified Webhookpost <https://developers.smtp2go.com/
+    reference/remove-webhook>
+
+Powered by 
+
+<https://readme.com/?ref_src=hub&project=smtp2goapi>
+
+
+  General API Resources
+
+Copy Page
+
+    📘
+
+
+        *Welcome* to the SMTP2GO API Docs 👋
+        <#welcome-to-the-smtp2go-api-docs->
+
+    The SMTP2GO API offers you an enhanced level of control and
+    monitoring of your SMTP2GO account.
+
+
+    Endpoints
+    <#endpoints>
+
+API calls must be prefixed with one of the following base URL's:
+
+Region	Base URL
+US (United States)	https://us-api.smtp2go.com/v3 <https://us-
+api.smtp2go.com/v3>
+EU (European Union)	https://eu-api.smtp2go.com/v3 <https://eu-
+api.smtp2go.com/v3>
+AU (Oceania)	https://au-api.smtp2go.com/v3 <https://au-api.smtp2go.com/v3>
+Global	https://api.smtp2go.com/v3 <https://api.smtp2go.com/v3>
+
+If you send your requests to the 'Global' endpoint, the API will
+automatically choose the US, EU or AU endpoint based on which is closest
+to the request origin (based on where your DNS resolver is located). We
+recommend using region-specific endpoints where possible, to ensure you
+connect to the region closest to you.
+
+
+    Technical Details
+    <#technical-details>
+
+To work with the API, please be sure to adhere to the following guides:
+
+  * Use the appropriate HTTP method for the call e.g. post or patch.
+  * All requests should be in the form of JSON.
+  * All requests must include the *api_key* field, or choose to use the
+    *X-Smtp2go-Api-Key* field in your header, as shown below.
+
+Example api_key field
+
+Example Headers
+
+|
+{
+    "api_key": "YourAPIKeyHere",
+    "search_subject": "Booking",
+    "event_types": ["opened", "clicked"],
+    "only_latest": true,
+    "limit": 1
+}
+
+|
+
+|
+{
+  'Content-Type': 'application/json',
+  'X-Smtp2go-Api-Key': 'YourAPIKeyHere'
+}
+
+|
+
+
+    Response Codes
+    <#response-codes>
+
+SMTP2GO uses conventional HTTP response codes to indicate the success or
+failure of a request.
+
+In general, codes in the |2xx| range indicate success. Codes in the |
+4xx| range indicate an error and reasons the request may have failed are
+given in the information provided. Codes in the |5xx| range indicate an
+error with SMTP2GO's servers (these are rare and if encountered please
+contact support for assistance).
+
+Below is a list of status codes and their corresponding definitions:
+
+Status Code	Definition
+|200| - OK	Everything worked as expected.
+|400| - Bad Request	The request was unacceptable, often due to missing a
+required parameter.
+|401| - Unauthorized	No valid API key provided.
+|402| - Request Failed	The parameters were valid but the request failed.
+|403| - Forbidden	The API key doesn't have permissions to perform the
+request.
+|404| - Not Found	The requested resource doesn't exist.
+|429| - Too Many Requests	Too many requests hit the API too quickly. We
+recommend an exponential backoff of your requests.
+|500|, |502|, |503|, |504| - Server Errors	Something went wrong on
+SMTP2GO's end. (These are rare.)
+
+Additional information is contained in the response body as in the
+following examples.
+
+Common Error Response Example
+
+|
+{
+   "error": "Failed to remove the single sender email - An error occurred deleting sender email asdfa@asdf.com or it doesn't exist",
+   "error_code": "E_ApiResponseCodes.API_EXCEPTION"
+}
+
+|
+
+Some errors contain additional field validation error information, as below.
+
+Common Error Response Example
+
+|
+{
+   "error": "An error occurred processing the json data you sent with the request, please make sure the data conforms to the specification for this call (see the documentation here: https://apidoc.smtp2go.com/documentation/#/README) and try again. Don't forget to set Content-Type to 'application/json'.",
+   "error_code": "E_ApiResponseCodes.NON_VALIDATING_IN_PAYLOAD",
+   "field_validation_errors": {
+      "fieldname": "sender",
+      "message": "The field 'sender' was expecting a valid RFC-822 formatted email field but found 'robs_invalid.com', Please correct your JSON payload and try again."
+   }
+}
+
+|
+
+
+    Rate Limiting
+    <#rate-limiting>
+
+The |/activity/search| endpoint has a rate limit of 60 per minute. If
+you need realtime access to a data, you should make use of Webhooks
+<https://developers.smtp2go.com/docs/webhooks-overview>.
+
+In the event that your interaction with the API results in what we deem
+to be too many requests or error responses, the IP address from which
+the requests originated will be timed out for an indeterminate amount of
+time, no less than 1 minute.
+
+You will receive a |429 Too Many Requests| response code during this
+time. If you begin to see these responses, pause and lower your request
+rate until you begin to see |200 OK| returned. Should you start
+receiving |429 Too Many Requests|, also ensure the requests you are
+sending are returning |200 OK|.
+
+
+    Points to note
+    <#points-to-note>
+
+
+      Maximum email size
+      <#maximum-email-size>
+
+The maximum email size when sending via the API is 50 MB (this includes
+content, attachments and headers).
+
+
+      Maximum number of recipients per email
+      <#maximum-number-of-recipients-per-email>
+
+The maximum number of recipients per email for each of the To, CC and
+BCC fields is 100. It is important to note that each recipient will
+count as one email from your plan's monthly quota.
+
+
+      Subaccounts
+      <#subaccounts>
+
+Certain API calls can be performed on subaccounts, using a parent/master
+account's API Key. The relevant subaccount is specified by including the
+'/subaccount_id/' parameter in the API call. Currently supported
+endpoints mention this parameter in our documentation.
+
+/
+
+/Updated 9 days ago
+
+------------------------------------------------------------------------
+Authentication
+<https://developers.smtp2go.com/reference/authentication>
+
+/
+
+/Updated 9 days ago
+
+------------------------------------------------------------------------
+Authentication
+<https://developers.smtp2go.com/reference/authentication>
+
+  *
+      o Endpoints <#endpoints>
+      o Technical Details <#technical-details>
+      o Response Codes <#response-codes>
+      o Rate Limiting <#rate-limiting>
+      o Points to note <#points-to-note>
+      o
+          + Maximum email size <#maximum-email-size>
+          + Maximum number of recipients per email <#maximum-number-of-
+            recipients-per-email>
+          + Subaccounts <#subaccounts>
+
+ 1. SMTP2GO API v3.0.4
+ 2.
+    General API Resources
+     <https://developers.smtp2go.com/reference/general-api-resources>
+ 3.
+    Authentication
+     <https://developers.smtp2go.com/reference/authentication>
+ 4.
+    Changelog
+     <https://developers.smtp2go.com/reference/changelog>
+
+ 1. ACTIVITY
+ 2.
+    Search activitypost
+     <https://developers.smtp2go.com/reference/search-activity>
+
+ 1. ALLOWED SENDERS
+ 2.
+    Add allowed senderspost
+     <https://developers.smtp2go.com/reference/add-allowed-senders>
+ 3.
+    Update allowed senderspost
+     <https://developers.smtp2go.com/reference/update-allowed-senders>
+ 4.
+    View allowed senderspost
+     <https://developers.smtp2go.com/reference/view-allowed-senders>
+ 5.
+    Remove allowed senderspost
+     <https://developers.smtp2go.com/reference/remove-allowed-senders>
+
+ 1. ALLOWED RECIPIENTS
+ 2.
+    Add allowed recipientspost
+     <https://developers.smtp2go.com/reference/add-allowed-recipients>
+ 3.
+    Update allowed recipientspost
+     <https://developers.smtp2go.com/reference/update-allowed-recipients>
+ 4.
+    View allowed recipientspost
+     <https://developers.smtp2go.com/reference/view-allowed-recipients>
+ 5.
+    Remove allowed recipientspost
+     <https://developers.smtp2go.com/reference/remove-allowed-recipients>
+
+ 1. API KEYS
+ 2.
+    View API Keyspost
+     <https://developers.smtp2go.com/reference/view-api-keys>
+ 3.
+    Add a new API keypost
+     <https://developers.smtp2go.com/reference/add-api-key>
+ 4.
+    Edit an API keypost
+     <https://developers.smtp2go.com/reference/edit-api-key>
+ 5.
+    Remove an API keypost
+     <https://developers.smtp2go.com/reference/remove-api-key>
+ 6.
+    View Permissionspost
+     <https://developers.smtp2go.com/reference/view-api-key-permissions>
+ 7.
+    Patch an API keypatch
+     <https://developers.smtp2go.com/reference/patch-api-key>
+
+ 1. DEDICATED IPS
+ 2.
+    View Dedicated IP Addressespost
+     <https://developers.smtp2go.com/reference/view-dedicated-ips>
+
+ 1. EMAILS
+ 2.
+    Send a standard emailpost
+     <https://developers.smtp2go.com/reference/send-standard-email>
+ 3.
+    Send a MIME emailpost
+     <https://developers.smtp2go.com/reference/send-mime-email>
+ 4.
+    Send a batch of emailspost
+     <https://developers.smtp2go.com/reference/send-email-batch>
+ 5.
+    View and search sent emailspost
+     <https://developers.smtp2go.com/reference/view-sent-emails>
+ 6.
+    Search schedule emailspost
+     <https://developers.smtp2go.com/reference/search-scheduled-emails>
+ 7.
+    Remove a scheduled emailpost
+     <https://developers.smtp2go.com/reference/remove-scheduled-emails>
+
+ 1. EMAIL ARCHIVE
+ 2.
+    Adjusting archives
+     <https://developers.smtp2go.com/reference/email-archive>
+ 3.
+    Search archived contentpost
+     <https://developers.smtp2go.com/reference/search-archived-pages>
+ 4.
+    View an archived emailpost
+     <https://developers.smtp2go.com/reference/view-an-archived-email>
+
+ 1. IP ALLOW LIST
+ 2.
+    IP Allow Listpost
+     <https://developers.smtp2go.com/reference/ip-allowlist>
+ 3.
+    View IP Allow Listpost
+     <https://developers.smtp2go.com/reference/view-ip-allowlist>
+ 4.
+    Add IP Allow Listpost
+     <https://developers.smtp2go.com/reference/add-ip-allowlist>
+ 5.
+    Edit IP Allow Listpost
+     <https://developers.smtp2go.com/reference/edit-ip-allowlist>
+ 6.
+    Remove IP Allow Listpost
+     <https://developers.smtp2go.com/reference/remove-ip-allowlist>
+
+ 1. IP AUTH
+ 2.
+    View IP Authpost
+     <https://developers.smtp2go.com/reference/view-ip-auth>
+ 3.
+    Patch an IP Authpatch
+     <https://developers.smtp2go.com/reference/patch-ip-auth>
+ 4.
+    Remove an IP Authpost
+     <https://developers.smtp2go.com/reference/remove-ip-auth>
+
+ 1. SENDER DOMAINS
+ 2.
+    Add a sender domainpost
+     <https://developers.smtp2go.com/reference/add-sender-domain>
+ 3.
+    Edit the tracking subdomainpost
+     <https://developers.smtp2go.com/reference/edit-tracking-domain>
+ 4.
+    Edit the return-path subdomainpost
+     <https://developers.smtp2go.com/reference/edit-return-path-domain>
+ 5.
+    Edit subaccount accesspost
+     <https://developers.smtp2go.com/reference/edit-subaccount-access>
+ 6.
+    Verify a sender domainpost
+     <https://developers.smtp2go.com/reference/verify-a-sender-domain>
+ 7.
+    View sender domainspost
+     <https://developers.smtp2go.com/reference/view-sender-domains>
+ 8.
+    Remove a sender domainpost
+     <https://developers.smtp2go.com/reference/remove-sender-domain>
+
+ 1. SINGLE SENDER EMAILS
+ 2.
+    Add a single sender emailpost
+     <https://developers.smtp2go.com/reference/add-a-single-sender-email>
+ 3.
+    View single sender emailspost
+     <https://developers.smtp2go.com/reference/view-all-single-sender-
+    emails>
+ 4.
+    Remove a single sender emailpost
+     <https://developers.smtp2go.com/reference/remove-a-single-sender-email>
+
+ 1. SMS
+ 2.
+    Send SMSpost
+     <https://developers.smtp2go.com/reference/send-sms>
+ 3.
+    View received SMSpost
+     <https://developers.smtp2go.com/reference/view-received-sms>
+ 4.
+    View sent SMSpost
+     <https://developers.smtp2go.com/reference/view-sent-sms>
+ 5.
+    SMS Summarypost
+     <https://developers.smtp2go.com/reference/sms-summary>
+
+ 1. SMTP USERS
+ 2.
+    Add an SMTP userpost
+     <https://developers.smtp2go.com/reference/add-an-smtp-user>
+ 3.
+    Edit SMTP user detailspost
+     <https://developers.smtp2go.com/reference/edit-an-smtp-user>
+ 4.
+    Patch an SMTP userpatch
+     <https://developers.smtp2go.com/reference/patch-an-smtp-user>
+ 5.
+    Remove an SMTP userpost
+     <https://developers.smtp2go.com/reference/remove-an-smtp-user>
+ 6.
+    View SMTP userspost
+     <https://developers.smtp2go.com/reference/view-smtp-users>
+
+ 1. STATISTICS
+ 2.
+    Email bouncespost
+     <https://developers.smtp2go.com/reference/email-bounces>
+ 3.
+    Email cyclepost
+     <https://developers.smtp2go.com/reference/email-cycle>
+ 4.
+    Email historypost
+     <https://developers.smtp2go.com/reference/email-history>
+ 5.
+    Email spampost
+     <https://developers.smtp2go.com/reference/email-spam>
+ 6.
+    Email summarypost
+     <https://developers.smtp2go.com/reference/email-summary>
+ 7.
+    Email unsubscribespost
+     <https://developers.smtp2go.com/reference/email-unsubscribes>
+
+ 1. SUBACCOUNTS
+ 2.
+    Add a subaccountpost
+     <https://developers.smtp2go.com/reference/add-subaccount>
+ 3.
+    Update a subaccountpost
+     <https://developers.smtp2go.com/reference/update-a-subaccount>
+ 4.
+    View subaccountspost
+     <https://developers.smtp2go.com/reference/search-subaccounts>
+ 5.
+    Close a subaccountpost
+     <https://developers.smtp2go.com/reference/close-a-subaccount>
+ 6.
+    Reopen a closed subaccountpost
+     <https://developers.smtp2go.com/reference/reopen-a-closed-subaccount>
+ 7.
+    Resend subaccount invitationpost
+     <https://developers.smtp2go.com/reference/resend-subaccount-invitation>
+
+ 1. SUPPRESSIONS
+ 2.
+    Add a suppressionpost
+     <https://developers.smtp2go.com/reference/add-a-suppression>
+ 3.
+    View suppressionspost
+     <https://developers.smtp2go.com/reference/view-suppressions>
+ 4.
+    Remove a suppressionpost
+     <https://developers.smtp2go.com/reference/remove-a-suppression>
+
+ 1. TEMPLATES
+ 2.
+    Add an email templatepost
+     <https://developers.smtp2go.com/reference/add-an-email-template>
+ 3.
+    Update an email templatepost
+     <https://developers.smtp2go.com/reference/update-an-email-template>
+ 4.
+    Remove an email templatepost
+     <https://developers.smtp2go.com/reference/remove-an-email-template>
+ 5.
+    View email templatespost
+     <https://developers.smtp2go.com/reference/search-email-templates>
+ 6.
+    View template detailspost
+     <https://developers.smtp2go.com/reference/view-template-details>
+
+ 1. WEBHOOKS
+ 2.
+    View Webhookspost
+     <https://developers.smtp2go.com/reference/view-webhook>
+ 3.
+    Add a new Webhookpost
+     <https://developers.smtp2go.com/reference/add-webhook>
+ 4.
+    Edit a specified Webhookpost
+     <https://developers.smtp2go.com/reference/edit-webhook>
+ 5.
+    Remove a specified Webhookpost
+     <https://developers.smtp2go.com/reference/remove-webhook>
+

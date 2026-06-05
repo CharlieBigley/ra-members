@@ -25,11 +25,11 @@ CREATE TABLE IF NOT EXISTS `#__ra_profiles` (
   `landlineTelephone` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `mobileNumber` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `membershipExpiryDate` date DEFAULT NULL,
-  `ramblersJoinDate` date DEFAULT NULL,
+  `ramblersJoinedDate` date DEFAULT NULL,
   `areaJoinedDate` date DEFAULT NULL,
   `groupCode` varchar(4) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `groupJoinedDate` date DEFAULT NULL,
-  `volunteer` varchar(3) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `volunteer` char(1) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `emailMarketingConsent` char(1) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `areaMarketingConsent` char(1) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `groupMarketingConsent` char(1) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -84,13 +84,13 @@ CREATE TABLE `#__ra_organisations` (
   `mailman_active` CHAR(1) NOT NULL DEFAULT "N",
   `logo` varchar(100) DEFAULT NULL,
   `logo_align` varchar(5) NOT NULL DEFAULT 'right',
-  `email_header` varchar(50) DEFAULT NULL,
+  `email_header` varchar(100) DEFAULT NULL,
   `colour_header` varchar(24) DEFAULT NULL,
   `colour_body` varchar(24) NOT NULL,
   `colour_footer` varchar(24) DEFAULT NULL,
   `welcome_letter` text,
   `reminder_letter` text,
-  `last_updated` datetime DEFAULT NULL,
+  `last_updated` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 
 --
