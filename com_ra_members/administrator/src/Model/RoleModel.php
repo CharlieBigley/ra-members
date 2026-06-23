@@ -1,13 +1,15 @@
 <?php
+
 /**
- * @version    CVS: 1.0.3
- * @package    Com_Ra_members
+ * @version    1.1.7
+ * @package    com_ra_members
  * @author     Charlie Bigley <charlie@bigley.me.uk>
  * @copyright  2026 Charlie Bigley
  * @license    GNU General Public License version 2 or later; see LICENSE.txt
  */
 
 namespace Ramblers\Component\Ra_members\Administrator\Model;
+
 // No direct access.
 defined('_JEXEC') or die;
 
@@ -17,6 +19,7 @@ use \Joomla\CMS\Language\Text;
 use \Joomla\CMS\Plugin\PluginHelper;
 use \Joomla\CMS\MVC\Model\AdminModel;
 use \Joomla\CMS\Helper\TagsHelper;
+use Joomla\CMS\Versioning\VersionableModelTrait;
 use \Joomla\CMS\Filter\OutputFilter;
 use \Joomla\CMS\Event\Model;
 use Joomla\CMS\Event\AbstractEvent;
@@ -25,253 +28,255 @@ use \Joomla\Database\DatabaseInterface;
 /**
  * Role model.
  *
- * @since  1.0.3
+ * @since  1.0.0
  */
-class RoleModel extends AdminModel
-{
-	/**
-	 * @var    string  The prefix to use with controller messages.
-	 *
-	 * @since  1.0.3
-	 */
-	protected $text_prefix = 'COM_RA_MEMBERS';
+class RoleModel extends AdminModel {
 
-	/**
-	 * @var    string  Alias to manage history control
-	 *
-	 * @since  1.0.3
-	 */
-	public $typeAlias = 'com_ra_members.role';
+    use VersionableModelTrait;
 
-	/**
-	 * @var    null  Item data
-	 *
-	 * @since  1.0.3
-	 */
-	protected $item = null;
+    /**
+     * @var    string  The prefix to use with controller messages.
+     *
+     * @since  1.0.0
+     */
+    protected $text_prefix = 'COM_RA_MEMBERS';
 
-	
-	
+    /**
+     * @var    string  Alias to manage history control
+     *
+     * @since  1.0.0
+     */
+    public $typeAlias = 'com_ra_members.role';
 
-	/**
-	 * Returns a reference to the a Table object, always creating it.
-	 *
-	 * @param   string  $type    The table type to instantiate
-	 * @param   string  $prefix  A prefix for the table class name. Optional.
-	 * @param   array   $config  Configuration array for model. Optional.
-	 *
-	 * @return  Table    A database object
-	 *
-	 * @since   1.0.3
-	 */
-	public function getTable($type = 'Role', $prefix = 'Administrator', $config = array())
-	{
-		return parent::getTable($type, $prefix, $config);
-	}
+    /**
+     * @var    null  Item data
+     *
+     * @since  1.0.0
+     */
+    protected $item = null;
+    protected $code;
+    protected $member_id;
 
-	/**
-	 * Method to get the record form.
-	 *
-	 * @param   array    $data      An optional array of data for the form to interogate.
-	 * @param   boolean  $loadData  True if the form is to load its own data (default case), false if not.
-	 *
-	 * @return  \JForm|boolean  A \JForm object on success, false on failure
-	 *
-	 * @since   1.0.3
-	 */
-	public function getForm($data = array(), $loadData = true)
-	{
-		// Initialise variables.
-		$app = Factory::getApplication();
+    /**
+     * Returns a reference to the a Table object, always creating it.
+     *
+     * @param   string  $type    The table type to instantiate
+     * @param   string  $prefix  A prefix for the table class name. Optional.
+     * @param   array   $config  Configuration array for model. Optional.
+     *
+     * @return  Table    A database object
+     *
+     * @since   1.0.0
+     */
+    public function getTable($type = 'Role', $prefix = 'Administrator', $config = array()) {
+        return parent::getTable($type, $prefix, $config);
+    }
 
-		// Get the form.
-		$form = $this->loadForm(
-								'com_ra_members.role', 
-								'role',
-								array(
-									'control' => 'jform',
-									'load_data' => $loadData 
-								)
-							);
+    /**
+     * Method to get the record form.
+     *
+     * @param   array    $data      An optional array of data for the form to interogate.
+     * @param   boolean  $loadData  True if the form is to load its own data (default case), false if not.
+     *
+     * @return  \JForm|boolean  A \JForm object on success, false on failure
+     *
+     * @since   1.0.0
+     */
+    public function getForm($data = array(), $loadData = true) {
+        // Initialise variables.
+        $app = Factory::getApplication();
+        // Get the form.
+        $form = $this->loadForm(
+                'com_ra_members.role',
+                'role',
+                array(
+                    'control' => 'jform',
+                    'load_data' => $loadData
+                )
+        );
+        if ($this->member_id == '0') {
+            $form->setFieldAttribute('member_name', 'visible', 'false');
+            $form->setFieldAttribute('member_name', 'required', 'false');
+        } else {
+            $form->setFieldAttribute('member_name', 'visible', 'true');
+            $form->setFieldAttribute('member_id', 'visible', 'false');
+            $form->setFieldAttribute('member_id', 'required', 'false');
+        }
+        if ($this->code == '') {
+            $form->setFieldAttribute('group_name', 'visible', 'false');
+            $form->setFieldAttribute('group_name', 'required', 'false');
+        } else {
+            $form->setFieldAttribute('group_name', 'visible', 'true');
+            $form->setFieldAttribute('organisation_code', 'visible', 'false');
+            $form->setFieldAttribute('organisation_code', 'required', 'false');
+        }
 
-		
+        return $form;
+    }
 
-		if (empty($form))
-		{
-			return false;
-		}
+    /**
+     * Method to get the data that should be injected in the form.
+     *
+     * @return  mixed  The data for the form.
+     *
+     * @since   1.0.0
+     */
+    protected function loadFormData() {
+        // Check the session for previously entered form data.
+        $data = Factory::getApplication()->getUserState('com_ra_members.edit.role.data', array());
 
-		return $form;
-	}
+        if (empty($data)) {
+            if ($this->item === null) {
+                $this->item = $this->getItem();
+            }
 
-	
+            $data = $this->item;
 
-	/**
-	 * Method to get the data that should be injected in the form.
-	 *
-	 * @return  mixed  The data for the form.
-	 *
-	 * @since   1.0.3
-	 */
-	protected function loadFormData()
-	{
-		// Check the session for previously entered form data.
-		$data = Factory::getApplication()->getUserState('com_ra_members.edit.role.data', array());
+            // Support for multiple or not foreign key field: role
+            $array = array();
 
-		if (empty($data))
-		{
-			if ($this->item === null)
-			{
-				$this->item = $this->getItem();
-			}
+            foreach ((array) $data->role as $value) {
+                if (!is_array($value)) {
+                    $array[] = $value;
+                }
+            }
+            if (!empty($array)) {
 
-			$data = $this->item;
-			
-		}
+                $data->role = $array;
+            }
+        }
+        // Pull params from state
+        $this->member_id = (int) $this->getState('com_ra_members.member.member_id', 0);
+        $this->code = $this->getState('com_ra_members.member.code', '');
+        return $data;
+    }
 
-		return $data;
-	}
+    /**
+     * Method to get a single record.
+     *
+     * @param   integer  $pk  The id of the primary key.
+     *
+     * @return  mixed    Object on success, false on failure.
+     *
+     * @since   1.0.0
+     */
+    public function getItem($pk = null) {
 
-	/**
-	 * Method to get a single record.
-	 *
-	 * @param   integer  $pk  The id of the primary key.
-	 *
-	 * @return  mixed    Object on success, false on failure.
-	 *
-	 * @since   1.0.3
-	 */
-	public function getItem($pk = null)
-	{
-		
-			if ($item = parent::getItem($pk))
-			{
-				if (isset($item->params))
-				{
-					$item->params = json_encode($item->params);
-				}
-				
-				// Do any procesing on fields here if needed
-			}
+        if ($item = parent::getItem($pk)) {
+            if (isset($item->params)) {
+                $item->params = json_encode($item->params);
+            }
 
-			return $item;
-		
-	}
+            // Do any procesing on fields here if needed
+        }
 
-	/**
-	 * Method to duplicate an Role
-	 *
-	 * @param   array  &$pks  An array of primary key IDs.
-	 *
-	 * @return  boolean  True if successful.
-	 *
-	 * @throws  Exception
-	 */
-	public function duplicate(&$pks)
-	{
-		$app = Factory::getApplication();
-		$user = $app->getIdentity();
+        return $item;
+    }
+
+    /**
+     * Method to duplicate an Role
+     *
+     * @param   array  &$pks  An array of primary key IDs.
+     *
+     * @return  boolean  True if successful.
+     *
+     * @throws  Exception
+     */
+    public function duplicate(&$pks) {
+        $app = Factory::getApplication();
+        $user = $app->getIdentity();
         $dispatcher = $this->getDispatcher();
 
-		// Access checks.
-		if (!$user->authorise('core.create', 'com_ra_members'))
-		{
-			throw new \Exception(Text::_('JERROR_CORE_CREATE_NOT_PERMITTED'));
-		}
+        // Access checks.
+        if (!$user->authorise('core.create', 'com_ra_members')) {
+            throw new \Exception(Text::_('JERROR_CORE_CREATE_NOT_PERMITTED'));
+        }
 
-		$context    = $this->option . '.' . $this->name;
+        $context = $this->option . '.' . $this->name;
 
-		// Include the plugins for the save events.
-		PluginHelper::importPlugin($this->events_map['save']);
+        // Include the plugins for the save events.
+        PluginHelper::importPlugin($this->events_map['save']);
 
-		$table = $this->getTable();
+        $table = $this->getTable();
 
-		foreach ($pks as $pk)
-		{
-			
-				if ($table->load($pk, true))
-				{
-					// Reset the id to create a new record.
-					$table->id = 0;
+        foreach ($pks as $pk) {
 
-					if (!$table->check())
-					{
-						throw new \Exception($table->getError());
-					}
-					
+            if ($table->load($pk, true)) {
+                // Reset the id to create a new record.
+                $table->id = 0;
 
-					// Create the before save event.
-					$beforeSaveEvent = AbstractEvent::create(
-						$this->event_before_save,
-						[
-							'context' => $context,
-							'subject' => $table,
-							'isNew'   => true,
-							'data'    => $table,
-						]
-					);
+                if (!$table->check()) {
+                    throw new \Exception($table->getError());
+                }
 
-					// Trigger the before save event.
-					$dispatchResult = Factory::getApplication()->getDispatcher()->dispatch($this->event_before_save, $beforeSaveEvent);
 
-					// Check if dispatch result is an array and handle accordingly
-					$result = isset($dispatchResult['result']) ? $dispatchResult['result'] : [];
+                // Create the before save event.
+                $beforeSaveEvent = AbstractEvent::create(
+                                $this->event_before_save,
+                                [
+                                    'context' => $context,
+                                    'subject' => $table,
+                                    'isNew' => true,
+                                    'data' => $table,
+                                ]
+                );
 
-					// Proceed with your logic
-					if (in_array(false, $result, true) || !$table->store()) {
-						throw new \Exception($table->getError());
-					}
+                // Trigger the before save event.
+                $dispatchResult = Factory::getApplication()->getDispatcher()->dispatch($this->event_before_save, $beforeSaveEvent);
 
-					// Trigger the after save event.
-					Factory::getApplication()->getDispatcher()->dispatch(
-						$this->event_after_save,
-						AbstractEvent::create(
-							$this->event_after_save,
-							[
-								'context'    => $context,
-								'subject'    => $table,
-								'isNew'      => true,
-								'data'       => $table,
-							]
-						)
-					);			
-				}
-				else
-				{
-					throw new \Exception($table->getError());
-				}
-			
-		}
+                // Check if dispatch result is an array and handle accordingly
+                $result = isset($dispatchResult['result']) ? $dispatchResult['result'] : [];
 
-		// Clean cache
-		$this->cleanCache();
+                // Proceed with your logic
+                if (in_array(false, $result, true) || !$table->store()) {
+                    throw new \Exception($table->getError());
+                }
 
-		return true;
-	}
+                // Trigger the after save event.
+                Factory::getApplication()->getDispatcher()->dispatch(
+                        $this->event_after_save,
+                        AbstractEvent::create(
+                                $this->event_after_save,
+                                [
+                                    'context' => $context,
+                                    'subject' => $table,
+                                    'isNew' => true,
+                                    'data' => $table,
+                                ]
+                        )
+                );
+            } else {
+                throw new \Exception($table->getError());
+            }
+        }
 
-	/**
-	 * Prepare and sanitise the table prior to saving.
-	 *
-	 * @param   Table  $table  Table Object
-	 *
-	 * @return  void
-	 *
-	 * @since   1.0.3
-	 */
-	protected function prepareTable($table)
-	{
-		jimport('joomla.filter.output');
+        // Clean cache
+        $this->cleanCache();
 
-		if (empty($table->id))
-		{
-			// Set ordering to the last item if not set
-			if (@$table->ordering === '')
-			{
-				$db = Factory::getContainer()->get(DatabaseInterface::class);
-				$db->setQuery('SELECT MAX(ordering) FROM #__ra_roles');
-				$max             = $db->loadResult();
-				$table->ordering = $max + 1;
-			}
-		}
-	}
+        return true;
+    }
+
+    /**
+     * Prepare and sanitise the table prior to saving.
+     *
+     * @param   Table  $table  Table Object
+     *
+     * @return  void
+     *
+     * @since   1.0.0
+     */
+    protected function prepareTable($table) {
+        jimport('joomla.filter.output');
+
+        if (empty($table->id)) {
+            // Set ordering to the last item if not set
+            if (@$table->ordering === '') {
+                $db = Factory::getContainer()->get(DatabaseInterface::class);
+                $db->setQuery('SELECT MAX(ordering) FROM #__ra_roles');
+                $max = $db->loadResult();
+                $table->ordering = $max + 1;
+            }
+        }
+    }
+
 }

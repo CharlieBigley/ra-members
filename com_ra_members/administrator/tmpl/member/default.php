@@ -1,8 +1,8 @@
 <?php
 
 /**
- * @version    1.0.2
- * @component  com_ra_members
+ * @version    1.1.7
+ * @package    com_ra_members
  * @author     Charlie Bigley <webmaster@bigley.me.uk>
  * @copyright  2023 Charlie Bigley
  * @license    GNU General Public License version 2 or later; see LICENSE.txt
@@ -25,10 +25,27 @@ $showDate = static function ($value) {
     return HTMLHelper::_('date', $value, 'd/M/y');
 };
 
-echo 'SalesForce id: <b>' . $this->item->salesforceId . '</b>, Mem No: <b>' . $this->item->membershipNumber . '</b>';
-echo ', Internal id: <b>' . $this->item->id . '</b><br>';
+echo 'Mem No: <b>' . $this->item->membershipNumber . '</b>, SalesForce id: <b>' . $this->item->salesforceId . '</b>';
+if (!is_null($this->item->member_id)) {
+    echo ', Internal id: <b>' . $this->item->member_id . '</b>';
+}
+if (!is_null($this->item->id)) {
+    echo ', User id: <b>' . $this->item->id . '</b>';
+}
+echo '<br>';
 echo 'Name: <b>' . $this->item->title . ' ' . $this->item->firstName . ' ' . $this->item->lastName . '</b><br>';
-echo 'Home group: <b>' . $this->item->home_group . '</b><br>';
+echo 'Preferred Name: <b>' . $this->item->preferred_name . '</b><br>';
+echo 'Home group: <b>' . $this->item->home_group . '</b>';
+if ($this->item->home_group !== $this->item->group_code) {
+    echo ', Group code: <b>';
+    if (is_null($this->item->group_code)) {
+        echo '(blank)';
+    } else {
+        echo $this->item->group_code;
+    }
+}
+echo '</b><br>';
+
 echo 'Address: <b>' . $this->item->address1;
 if ($this->item->address2 !== '') {
     echo ', ' . $this->item->address2;
@@ -49,29 +66,60 @@ if ($this->item->postcode !== '') {
     echo ', ' . $this->item->postcode;
 }
 echo '</b><br>';
-echo 'Phone: ';
-if ($this->item->mobileNumber !== '') {
-    echo 'Mobile <b>' . $this->item->mobileNumber . '</b>';
+echo 'Phone: <b>';
+$phones = '';
+if (!is_null($this->item->mobileNumber)) {
+    $phones = 'Mobile <b>' . $this->item->mobileNumber . '</b>';
 }
-if ($this->item->landlineTelephone !== '') {
-    echo ', Landline <b>' . $this->item->landlineTelephone . '</b>';
+if (!is_null($this->item->landlineTelephone)) {
+    if ($phones !== '') {
+        $phones .= ', ';
+    }
+    $phones .= 'Landline <b>' . $this->item->landlineTelephone . '</b>';
+}
+if ($phones == '') {
+    echo 'No phone';
+} else {
+    echo $phones;
 }
 echo '</b><br>';
 echo 'Email: ';
-if ($this->item->id == 0) {
-    echo '<b>No email address</b>';
+if (is_null($this->item->id)) {
+    // $loadHelper->checkEmail
+    $sql = 'SELECT id FROM `#__users` WHERE email="' . $this->item->email_spare . '"';
+    $user_id = $this->toolsHelper->getValue($sql);
+    if ($user_id) {
+        $sql = 'UPDATE #__ra_profiles SET id=' . (int) $user_id;
+        $this->toolsHelper->executeCommand($sql);
+        $sql = 'SELECT email FROM `#__users` WHERE id = ' . (int) $user_id;
+        $email = $this->toolsHelper->getValue($sql);
+    } else {
+        $email = 'No email address';
+    }
 } else {
-    $sql = 'SELECT email FROM `#__users` WHERE id=' . (int) $this->item->id;
+    $sql = 'SELECT email FROM `#__users` WHERE id = ' . (int) $this->item->id;
     $email = $this->toolsHelper->getValue($sql);
-    echo '<b>' . $email . '</b>';
 }
+echo '<b>' . $email . '</b>';
+//if ($this->item->id == 0) {
+//    echo '<b>No email address</b>';
+//} else {
+//    $sql = 'SELECT email FROM `#__users` WHERE id = ' . (int) $this->item->id;
+//    $email = $this->toolsHelper->getValue($sql);
+//    echo '<b>' . $email . '</b>';
+//}
 echo '<br>';
-$sql = 'SELECT email FROM `#__users` WHERE id=' . (int) $this->item->id;
-$email = $this->toolsHelper->getValue($sql);
+
 // $this->toolsHelper
+echo 'Member Type: <b>' . $this->item->memberType . '</b><br>';
 echo 'Member Arrangement: <b>' . $this->item->membershipArrangement . '</b>';
 if (!is_null($this->item->jointWith)) {
-    echo 'Joint with: <b>' . $this->item->jointWith . '</b>';
+    echo ', Joint with: <b>' . $this->item->jointWith . '</b>';
+    $partner = $this->mailHelper->lookupMember($this->item->jointWith);
+    if (!$partner) {
+        $partner = 'Not found';
+    }
+    echo ' ' . $partner;
 }
 if (!is_null($this->item->affiliateMemberPrimaryGroup)) {
     echo ', Affiliate group: <b>' . $this->item->affiliateMemberPrimaryGroup . '</b>';
@@ -92,7 +140,8 @@ if (!is_null($this->item->groupJoinedDate)) {
 
 echo '<br>';
 echo 'Volunteer <b>';
-echo ($this->item->volunteer == 'Y') ? 'Yes' : 'No' . '</b><br>';
+echo ($this->item->volunteer == 'Y') ? 'Yes' : 'No';
+echo '</b><br>';
 echo 'Email Marketing Consent: <b>';
 echo ($this->item->emailMarketingConsent == 'Y') ? 'Yes' : 'No';
 echo '</b>';
@@ -107,11 +156,11 @@ if (!is_null($this->item->postPermissionLastUpdated)) {
 }
 echo '<br>';
 echo 'Telephone Marketing Consent: <b>';
-echo ($this->item->telephoneDirectMarketing == 'Y') ? 'Yes' : 'No' . '</b>';
+echo ($this->item->telephoneDirectMarketing == 'Y') ? 'Yes' : 'No';
 if (!is_null($this->item->telephonePermissionLastUpdated)) {
-    echo ' Last updated <b>' . $showDate($this->item->telephonePermissionLastUpdated) . '</b>';
+    echo '</b> Last updated <b>' . $showDate($this->item->telephonePermissionLastUpdated);
 }
-echo '<br>';
+echo '</b><br>';
 
 echo 'Group emails consent: <b>';
 echo ($this->item->groupMarketingConsent == 'Y') ? 'Yes' : 'No';
@@ -126,9 +175,16 @@ echo ($this->item->walkProgrammeOptOut == 'Y') ? 'Yes' : 'No' . '</b><br>';
 // affiliateMemberPrimaryGroup
 
 echo '</b><br>';
+
+if (!is_null($this->item->id)) {
+
+// Show any Roles
+    $this->showRoles();
+// Show any subsc// $this->showRoles();riptions
+    $this->showSubscriptions();
+}
+
 $this->showAudit();
-// $target = 'administrator/index.php?option=com_ra_members&task=member.showAudit&id=' . $this->item->id;
-// echo $this->toolsHelper->buildButton($target, 'Membership audit');
 
 $back = 'administrator/index.php?option=com_ra_members&view=members';
 echo $this->toolsHelper->backButton($back);

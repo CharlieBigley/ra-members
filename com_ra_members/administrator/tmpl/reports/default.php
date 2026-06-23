@@ -1,11 +1,12 @@
 <?php
 /**
- * @version     1.1.3
+ * @version     1.1.7
  * @package     com_ra_members
  * @copyright   Copyright (C) 2020. All rights reserved.
  * @license     GNU General Public License version 2 or later; see LICENSE.txt
  * @author      Charlie <webmaster@bigley.me.uk> - https://www.stokeandnewcastleramblers.org.uk
  * 25/04/26 CB created
+ * 22/06/26 CB new reports for Volunteers, Affilites
  */
 defined('_JEXEC') or die;
 
@@ -58,17 +59,26 @@ $admin_reports = [
 ];
 
 $reports = [
+    'Membership statistics' => 'administrator/index.php?option=com_ra_members&task=reports.memberStatistics',
     'Members by Group' => 'administrator/index.php?option=com_ra_members&task=reports.membersByGroup',
     'Analysis of members by group' => 'administrator/index.php?option=com_ra_members&task=reports.analyseListMembership',
-    'Membership statistics' => 'administrator/index.php?option=com_ra_members&task=reports.memberStatistics',
+    'Recent updates' => 'administrator/index.php?option=com_ra_members&task=reports.recentUpdates',
+    'Recent joiners' => 'administrator/index.php?option=com_ra_members&task=reports.recentJoiners',
     'Changed group' => 'administrator/index.php?option=com_ra_members&task=reports.changedGroup',
+    'Volunteers' => 'administrator/index.php?option=com_ra_members&task=reports.generalReport&mode=V',
+    'Affiliate Members' => 'administrator/index.php?option=com_ra_members&task=reports.generalReport&mode=A',
+    'Joint members' => 'administrator/index.php?option=com_ra_members&task=reports.jointMembers',
     'Lapsed members' => 'administrator/index.php?option=com_ra_members&task=reports.lapsedMembers',
+    'Members with duplicate names' => 'administrator/index.php?option=com_ra_members&task=reports.duplicateNames',
     'Members joined Ramblers, by month' => 'administrator/index.php?option=com_ra_members&task=reports.analyseJoinedRamblers',
     'Members joined Area, by month' => 'administrator/index.php?option=com_ra_members&task=reports.analyseJoinedArea',
     'Members joined Group, by month' => 'administrator/index.php?option=com_ra_members&task=reports.analyseJoinedGroup',
     'Members lapsing, by month' => 'administrator/index.php?option=com_ra_members&task=reports.analyseLapsing',
-    'Joint members' => 'administrator/index.php?option=com_ra_members&task=reports.jointMembers',
+    'Export members' => 'administrator/index.php?option=com_ra_members&task=reports.exportMembers',
 ];
+//if ($code !== 'N') {
+//    $reports[] = 'Export members' => 'administrator/index.php?option=com_ra_members&task=reports.exportMembers';
+//}
 ?>
 <form action="<?php echo JRoute::_('index.php?option=com_ra_tools&view=reports'); ?>" method="post" name="reportsForm" id="reportsForm">
     <div id="j-main-container" class="span10">
@@ -80,6 +90,8 @@ $reports = [
 //            foreach ($admin_reports as $caption => $task) {
 //                echo '<li>' . $this->toolsHelper->buildLink($task, $caption) . '</li>';
 //            }
+        }
+        if (($this->toolsHelper->isSuperuser()) OR ($code == 'N')) {
             foreach ($reports as $caption => $task) {
                 echo '<li>' . $this->toolsHelper->buildLink($task, $caption) . '</li>';
             }
@@ -94,12 +106,14 @@ $reports = [
             }
             echo '</ul>';
         }
-        echo '<h4>Group reports</h4>';
-        echo '<ul>';
-        foreach ($reports as $caption => $task) {
-            echo '<li>' . $this->toolsHelper->buildLink($task . '&scope=G', $caption) . '</li>';
+        if ($code !== 'N') {
+            echo '<h4>Group reports</h4>';
+            echo '<ul>';
+            foreach ($reports as $caption => $task) {
+                echo '<li>' . $this->toolsHelper->buildLink($task . '&scope=G', $caption) . '</li>';
+            }
+            echo '</ul>';
         }
-        echo '</ul>';
         echo $this->toolsHelper->backButton($back);
         ?>
         <input type="hidden" name="task" value="" />

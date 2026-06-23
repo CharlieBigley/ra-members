@@ -1,13 +1,14 @@
 <?php
 
 /**
- * @version    CVS: 1.0.0
- * @package    Com_Ra_members
+ * @version    1.1.7
+ * @package    com_ra_members
  * @author     Charlie Bigley <charlie@bigley.me.uk>
  * @copyright  2026 Charlie Bigley
  * @license    GNU General Public License version 2 or later; see LICENSE.txt
  * 19/05/26 CB jointMembers
- * 05/06/26 CB show group code unless scope is G
+ * 05/06/26 CB show group code unless scope is G, use scope for Analysis of members by group
+ * 22/06/26 CB new reports for Volunteers, Affilites
  */
 
 namespace Ramblers\Component\Ra_members\Administrator\Controller;
@@ -59,14 +60,15 @@ class ReportsController extends AdminController {
         $this->breadcrumbs .= '>' . $this->toolsHelper->buildLink('administrator/index.php?option=com_ra_tools&view=dashboard', 'RA Dashboard');
         $this->breadcrumbs .= '>' . $this->toolsHelper->buildLink($this->back, 'Membership Reports');
         $this->scope = $this->app->input->getWord('scope', '');
-        if ($this->scope == '') {
+        $code = $this->mailHelper->getDefaultGroup();
+        if (($this->scope == '') OR ($this->scope == 'N')) {
             $this->subheading = 'All records';
         } else {
-            $code = $this->mailHelper->getDefaultGroup();
-            if ($this->scope == 'A') {
+            if ($code == '') {
+                echo 'Unable to find default group<br>';
+            } elseif ($this->scope == 'A') {
                 $code = substr($code, 0, 2);
             }
-
             $sql = 'SELECT id, name ';
             $sql .= 'FROM #__ra_organisations ';
             $sql .= 'WHERE code="' . $code . '"';
@@ -82,12 +84,13 @@ class ReportsController extends AdminController {
     public function analyseListMembership() {
         ToolBarHelper::title($this->prefix . 'Analysis of members by group');
         echo $this->breadcrumbs;
+        echo '<h4>Scope ' . $this->subheading . '</h4>';
         $header = 'Status,Group,Count';
 
         $sql = 'SELECT l.id, l.`group_code`, l.`name`';
-        $sql .= 'FROM `j5_ra_mail_lists` AS l ';
+        $sql .= 'FROM `#__ra_mail_lists` AS l ';
         $sql .= 'WHERE l.`group_code` = l.`group_primary`';
-
+        $sql .= $this->buildCriterion('AND', 'l.group_code');
         $lists = $this->toolsHelper->getRows($sql);
         foreach ($lists as $list) {
             echo '<h4>' . $list->group_code . ': ' . $list->name . '</h4>';
@@ -95,9 +98,9 @@ class ReportsController extends AdminController {
             $table->add_header($header);
 
             $sql = 'SELECT l.state, p.home_group, COUNT(l.id) As `Cnt`';
-            $sql .= 'FROM `j5_ra_mail_lists` AS l ';
-            $sql .= 'INNER JOIN `j5_ra_mail_subscriptions` AS s ON s.list_id = l.id ';
-            $sql .= 'INNER JOIN `j5_ra_profiles` AS p ON p.id = s.user_id ';
+            $sql .= 'FROM `#__ra_mail_lists` AS l ';
+            $sql .= 'INNER JOIN `#__ra_mail_subscriptions` AS s ON s.list_id = l.id ';
+            $sql .= 'INNER JOIN `#__ra_profiles` AS p ON p.id = s.user_id ';
             $sql .= 'WHERE  l.`id`=' . $list->id;
             $sql .= ' GROUP BY l.state, l.`group_code`,p.home_group';
             $rows = $this->toolsHelper->getRows($sql);
@@ -161,13 +164,13 @@ class ReportsController extends AdminController {
     }
 
     private function breadcrumbsExtra($label, $report) {
-        // generates a link to be added to the standard breadcrumbs
+// generates a link to be added to the standard breadcrumbs
         $target = 'administrator/index.php?option=com_ra_members&task=reports.' . $report;
         return '>' . $this->toolsHelper->buildLink($target, $label);
     }
 
     private function buildCriterion($operator, $field_name, $code = '') {
-        // If scope is blank, no additional criterion is required
+// If scope is blank, no additional criterion is required
         if ($this->scope == '') {
             $this->subheading = 'All records';
             return '';
@@ -191,18 +194,19 @@ class ReportsController extends AdminController {
         } else {
             $this->subheading = $code . ' ' . (!empty($item->name) ? htmlspecialchars($item->name) : 'N/A');
         }
-        //       echo $sql . '<br>';
+//       echo $sql . '<br>';
         return $sql;
     }
 
     public function changedGroup() {
-        // Show members who joined a group after first joining Ramblers within the current scope.
+// Show members who joined a group after first joining Ramblers within the current scope.
         ToolBarHelper::title('Changed group');
         echo $this->breadcrumbs;
         echo '<h4>Scope ' . $this->subheading . '</h4>';
 
         $select = array(
             'p.membershipNumber',
+            'u.email',
             'p.preferred_name',
             'p.ramblersJoinedDate',
             'p.groupJoinedDate',
@@ -218,12 +222,16 @@ class ReportsController extends AdminController {
         }
 
         $headers[] = 'Preferred name';
+        $headers[] = 'Email';
         $headers[] = 'Date joined Ramblers';
         $headers[] = 'Date joined Group';
         $headers[] = 'Days between';
 
         $sql = 'SELECT ' . implode(', ', $select) . ' ';
         $sql .= 'FROM #__ra_profiles AS p ';
+        if (1) {
+            $sql .= 'INNER JOIN #__users AS u ON u.id = p.id ';
+        }
         $sql .= 'WHERE p.ramblersJoinedDate IS NOT NULL ';
         $sql .= 'AND p.groupJoinedDate IS NOT NULL ';
         $sql .= 'AND p.ramblersJoinedDate < p.groupJoinedDate ';
@@ -243,6 +251,7 @@ class ReportsController extends AdminController {
                 }
 
                 $table->add_item($row->preferred_name);
+                $table->add_item($row->email);
                 $table->add_item(HTMLHelper::_('date', $row->ramblersJoinedDate, 'd M y'));
                 $table->add_item(HTMLHelper::_('date', $row->groupJoinedDate, 'd M y'));
                 $table->add_item((int) $row->days_between);
@@ -255,6 +264,136 @@ class ReportsController extends AdminController {
         $count = is_array($rows) ? count($rows) : 0;
         echo $count . ' records found<br>';
         echo $this->toolsHelper->backButton($this->back . '&scope=' . $this->scope);
+    }
+
+    public function duplicateNames() {
+        ToolBarHelper::title('Users with duplicated names');
+        echo $this->breadcrumbs;
+        echo '<h4>Scope ' . $this->subheading . '</h4>';
+
+// Check for Profiles with duplicated name
+        $sql = 'SELECT home_group, preferred_name, count(id) ';
+        $sql .= 'FROM #__ra_profiles GROUP BY home_group, preferred_name ';
+        $sql .= 'HAVING COUNT(id) > 1 ';
+        $sql .= $this->buildCriterion('AND', 'home_group');
+        $sql .= 'ORDER BY preferred_name';
+        $rows = $this->toolsHelper->getRows($sql);
+
+        if (count($rows) == 0) {
+            echo 'No duplicate names found for Member records<br>';
+        } else {
+            echo '<h4>Member records with duplicated names</h4>';
+            $table = new ToolsTable();
+            if ($this->scope == '') {
+                $header = 'id,Group,';
+            } else {
+                $header = 'id,';
+            }
+            $header .= 'Membership,Preferred name, Real name,Email';
+            $table->add_header($header);
+            foreach ($rows as $row) {
+                $sql_member = 'SELECT membershipNumber ';
+                $sql_member .= 'FROM #__ra_profiles ';
+                $sql_member .= 'WHERE id=' . $row->id;
+                $membership_number = $this->toolsHelper->getValue($sql_member);
+
+                $sql_user = 'SELECT p.id, u.name, u.email ';
+                $sql_user .= 'FROM #__ra_profiles AS p ';
+                $sql_user .= 'LEFT JOIN #__users AS u ON u.id = p.id ';
+                $sql_user .= 'WHERE p.preferred_name="' . $row->preferred_name . '"';
+//               echo "$sql_user<br>";
+                $users = $this->toolsHelper->getRows($sql_user);
+                foreach ($users as $user) {
+                    $table->add_item($user->id);
+                    if ($this->scope == '') {
+                        $table->add_item($row->home_group);
+                    }
+                    $table->add_item($membership_number);
+                    $table->add_item($row->preferred_name);
+                    $table->add_item($user->name);
+                    $table->add_item($user->email);
+                    $table->generate_line();
+                }
+            }
+            $table->generate_table();
+            echo '<p style="color:red">Please edit the User records and change the name</p>';
+        }
+        echo $this->toolsHelper->backButton($this->back . '&scope=' . $this->scope);
+    }
+
+    public function exportMembers() {
+        // Generate CSV data
+
+        $sql = 'SELECT p.home_group, p.preferred_name, u.email, p.membershipNumber ';
+        $sql .= 'FROM #__ra_profiles AS p ';
+        $sql .= 'INNER JOIN #__users AS u ON u.id = p.id ';
+        $sql .= $this->buildCriterion('WHERE', 'p.home_group');
+        $sql .= 'GROUP BY p.member_id, p.membershipExpiryDate, p.membershipNumber, p.preferred_name, p.groupJoinedDate';
+        $sql .= ' ORDER BY  p.preferred_name';
+        $rows = $this->toolsHelper->getRows($sql);
+        $headings .= 'Group,Name,Email,Membership No\n"';
+        $csvData = $headings;
+
+        foreach ($rows as $row) {
+            $csvData .= $row->home_group . ',';
+            $csvData .= $row->preferred_name . ',';
+            $csvData .= $row->email . ',';
+            $csvData .= $row->membershipNumber;
+            $csvData .= "\n";
+        }
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="members_' . date('Y-m-d') . '.csv"');
+        echo $csvData;
+    }
+
+    public function generalReport() {
+        $mode = $this->app->input->getWord('mode', 'V');
+        if ($mode == 'A') {
+            $title = 'Affiliate Report';
+            $criterion = 'memberType="Affiliate" ';
+        } elseif ($mode == 'V') {
+            $title = 'Volunteer Report';
+            $criterion = 'volunteer="Y" ';
+        } else {
+            $this->app->enqueueMessage('generalReport invoked with invalid mode ' . $mode, 'Info"');
+            return;
+        }
+        ToolBarHelper::title($title);
+        echo $this->breadcrumbs;
+        echo '<h4>Scope ' . $this->subheading . '</h4>';
+        $sql = 'SELECT p.home_group, p.preferred_name, p.memberType, p.membershipNumber, ';
+        $sql .= 'p.volunteer, p.affiliateMemberPrimaryGroup, p.groupJoinedDate, p.ramblersJoinedDate ';
+        $sql .= 'FROM #__ra_profiles AS p ';
+        $sql .= 'WHERE ' . $criterion;
+        $sql .= $this->buildCriterion('AND', 'p.home_group');
+        $sql .= 'ORDER BY p.home_group, p.preferred_name, p.membershipNumber';
+        $table = new ToolsTable();
+        if ($this->scope == 'G') {
+            $heading = '';
+        } else {
+            $heading = 'Group,';
+        }
+        $heading .= 'Preferred_name,Type, Membership No,Volunteer,Affiliate Group, Joined Group, Joined Ramblers';
+        $table->add_header($heading);
+//       echo $sql . '<br>';
+        $rows = $this->toolsHelper->getRows($sql);
+        foreach ($rows as $row) {
+            if ($this->scope !== 'G') {
+                $table->add_item($row->home_group);
+            }
+            $table->add_item($row->preferred_name);
+
+            $table->add_item($row->membershipNumber);
+            $table->add_item($row->memberType);
+            $table->add_item($row->volunteer);
+            $table->add_item($row->affiliateMemberPrimaryGroup);
+            $table->add_item($row->groupJoinedDate ? HTMLHelper::_('date', $row->groupJoinedDate, 'd M y') : '');
+            $table->add_item($row->ramblersJoinedDate ? HTMLHelper::_('date', $row->ramblersJoinedDate, 'd M y') : '');
+            $table->generate_line();
+        }
+        $table->generate_table();
+        echo $this->toolsHelper->backButton($this->back);
     }
 
     public function jointMembers() {
@@ -275,7 +414,7 @@ class ReportsController extends AdminController {
         }
         $heading .= 'Surname,Forename,Mem No,Joint with,Joint Surname,Joint Forename,Joint Mem No';
         $table->add_header($heading);
-        echo $sql . '<br>';
+//       echo $sql . '<br>';
         $rows = $this->toolsHelper->getRows($sql);
         foreach ($rows as $row) {
             if ($this->scope !== 'G') {
@@ -295,8 +434,8 @@ class ReportsController extends AdminController {
     }
 
     public function lapsedMembers() {
-        // Show members whose expiry date has passed or is today within the current scope,
-        // including a count of matching role rows for each member.
+// Show members whose expiry date has passed or is today within the current scope,
+// including a count of matching role rows for each member.
         ToolBarHelper::title('Lapsed members');
         echo $this->breadcrumbs;
         echo '<h4>Scope ' . $this->subheading . '</h4>';
@@ -308,9 +447,10 @@ class ReportsController extends AdminController {
             'COUNT(r.id) AS role_count',
             'p.groupJoinedDate',
             'DATEDIFF(CURDATE(), p.membershipExpiryDate) AS days_lapsed',
+            'u.email',
         );
         $headers = array(
-            'Membership expiry date',
+            'Lapse date',
             'Membership number',
         );
 
@@ -320,6 +460,7 @@ class ReportsController extends AdminController {
         }
 
         $headers[] = 'Preferred name';
+        $headers[] = 'Email';
         $headers[] = 'Roles';
         $headers[] = 'Group joined';
         $headers[] = 'Days since lapse';
@@ -327,6 +468,7 @@ class ReportsController extends AdminController {
         $sql = 'SELECT ' . implode(', ', $select) . ' ';
         $sql .= 'FROM #__ra_profiles AS p ';
         $sql .= 'LEFT JOIN #__ra_roles AS r ON r.member_id = p.member_id ';
+        $sql .= 'LEFT JOIN #__users AS u ON u.id = p.id ';
         $sql .= 'WHERE p.membershipExpiryDate IS NOT NULL ';
         $sql .= 'AND p.membershipExpiryDate <= CURDATE() ';
         $sql .= $this->buildCriterion('AND', 'p.home_group');
@@ -352,6 +494,7 @@ class ReportsController extends AdminController {
                 }
 
                 $table->add_item($row->preferred_name);
+                $table->add_item($row->email);
                 $table->add_item((int) $row->role_count);
                 $table->add_item($row->groupJoinedDate ? HTMLHelper::_('date', $row->groupJoinedDate, 'd M y') : '');
                 $table->add_item((int) $row->days_lapsed);
@@ -408,9 +551,14 @@ class ReportsController extends AdminController {
         $sql = 'SELECT COUNT(*) as cnt FROM #__ra_profiles ';
         $sql .= $this->buildCriterion('WHERE', 'home_group');
         $tot = $this->toolsHelper->getValue($sql);
-
         echo 'Total members: ' . $tot . '<br>';
-        // Find out how many have an email address
+
+        $sql = 'SELECT COUNT(*) as cnt FROM #__users ';
+        $sql .= $this->buildCriterion('WHERE', 'home_group');
+        $tot_users = $this->toolsHelper->getValue($sql);
+        echo 'Total users: ' . $tot_users . '<br>';
+
+// Find out how many have an email address
         $table->add_item('With email/ Without email');
         $sql = 'SELECT COUNT(p.id) as cnt FROM #__ra_profiles AS p ';
         $sql .= 'INNER JOIN #__users AS u ON u.id = p.id ';
@@ -422,14 +570,32 @@ class ReportsController extends AdminController {
         $sql .= 'LEFT JOIN #__ra_profiles AS p ON p.id = u.id ';
         $sql .= $this->buildCriterion('WHERE', 'p.home_group');
         $sql .= ' AND u.email IS NULL ';
-//        echo $sql . '<br>';
         $two = $this->toolsHelper->getValue($sql);
         $table->add_item($two);
         $balance = $tot - $one - $two;
         $table->add_item($balance);
         $table->generate_line();
 
-        // Find out which types of member we have, and how many of each
+        // Find out how many have a membership number
+        $table->add_item('With Membership No/ Without Membership No');
+        $sql = 'SELECT COUNT(*) as cnt FROM #__ra_profiles ';
+        $sql .= 'WHERE membershipNumber IS NOT NULL ';
+        //       echo $sql . '<br>';
+        $sql .= $this->buildCriterion('AND', 'home_group');
+
+        $one = $this->toolsHelper->getValue($sql);
+        $table->add_item($one);
+
+        $sql = 'SELECT COUNT(*) as cnt FROM #__ra_profiles  ';
+        $sql .= 'WHERE membershipNumber IS NULL ';
+        $sql .= $this->buildCriterion('AND', 'home_group');
+
+//        echo $sql . '<br>';
+        $two = $this->toolsHelper->getValue($sql);
+        $table->add_item($two);
+        $table->generate_line();
+
+// Find out which types of member we have, and how many of each
         $sql = 'SELECT COUNT(*) as cnt FROM #__ra_profiles ';
         $sql .= $this->buildCriterion('WHERE', 'home_group');
         if ($this->scope == '') {
@@ -480,9 +646,8 @@ class ReportsController extends AdminController {
         $table->generate_line();
 
         $table->add_item('Volunteer Yes/ Volunteer No');
-        $criterion = $operator . 'volunteer="';
-        $one = $this->toolsHelper->getValue($sql . $criterion . 'Y' . '"');
-        $two = $this->toolsHelper->getValue($sql . $criterion . 'N' . '"');
+        $one = $this->toolsHelper->getValue($sql . $operator . ' volunteer="Y"');
+        $two = $this->toolsHelper->getValue($sql . $operator . ' volunteer IS NULL');
         $table->add_item($one);
         $table->add_item($two);
         $balance = $tot - $one - $two;
@@ -513,6 +678,90 @@ class ReportsController extends AdminController {
         $criterion = $operator . 'walkProgrammeOptOut="YES"';
         $one = $this->toolsHelper->getValue($sql . $criterion);
         echo 'Walk Programme Opt-Out ' . $one . '<br>';
+
+        echo $this->toolsHelper->backButton($this->back);
+    }
+
+    public function recentJoiners() {
+        $count = 30;
+        ToolBarHelper::title($count . ' most recent Members to have joined');
+        echo $this->breadcrumbs;
+        echo '<h4>Scope ' . $this->subheading . '</h4>';
+        $table = new ToolsTable();
+        if ($this->scope == '') {
+            $headers = 'Joined,Group,';
+        } else {
+            $headers = 'Joined,';
+        }
+        $headers .= 'Member No,Name,Email,Type,Term,Lapse date,Days ago';
+        $table->add_header($headers);
+        $sql = 'SELECT p.groupJoinedDate, p.home_group, p.membershipNumber, p.preferred_name, ';
+        $sql .= 'u.email, memberType, memberTerm, p.membershipExpiryDate, ';
+        $sql .= 'DATEDIFF(CURRENT_DATE,p.groupJoinedDate) AS days_ago ';
+        $sql .= 'FROM `#__ra_profiles` AS p ';
+        $sql .= 'LEFT JOIN #__users AS u ON u.id = p.id ';
+        $sql .= 'ORDER BY p.groupJoinedDate DESC ';
+        $sql .= 'LIMIT ' . $count;
+//       echo $sql;
+        $rows = $this->toolsHelper->getRows($sql);
+        foreach ($rows as $row) {
+            $table->add_item(HTMLHelper::_('date', $row->groupJoinedDate, 'd M y'));
+            if ($this->scope == '') {
+                $table->add_item($row->home_group);
+            }
+            $table->add_item($row->membershipNumber);
+            $table->add_item($row->preferred_name);
+            $table->add_item($row->email);
+
+            $table->add_item($row->memberType);
+            $table->add_item($row->memberTerm);
+            $table->add_item(HTMLHelper::_('date', $row->membershipExpiryDate, 'd M y'));
+            $table->add_item($row->days_ago);
+            $table->generate_line();
+        }
+        $table->generate_table();
+        echo $this->toolsHelper->backButton($this->back);
+    }
+
+    public function recentUpdates() {
+        $count = 30;
+        ToolBarHelper::title($count . ' most recent updates');
+        echo $this->breadcrumbs . $this->breadcrumbsExtra('Members joined Area, by month', 'analyseJoinedArea');
+        echo '<h4>Scope ' . $this->subheading . '</h4>';
+        $table = new ToolsTable();
+        if ($this->scope == '') {
+            $headers = 'Date,Group,';
+        } else {
+            $headers = 'Date,';
+        }
+        $headers .= 'Name,Member No,Field,Term,Lapse date,Days ago';
+        $table->add_header($headers);
+        $sql = 'SELECT p.groupJoinedDate, p.home_group, p.membershipNumber, p.preferred_name, ';
+        $sql .= 'a.date_amended,  ';
+        $sql .= 'DATEDIFF(CURRENT_DATE,a.date_amended) AS days_ago ';
+        $sql .= 'FROM `#__ra_profiles_audit` AS a ';
+        $sql .= 'INNER JOIN `#__ra_profiles` AS p  ON p.id = a.object_id ';
+        $sql .= 'ORDER BY a.date_amended DESC ';
+        $sql .= 'LIMIT ' . $count;
+//       echo $sql;
+        $rows = $this->toolsHelper->getRows($sql);
+        foreach ($rows as $row) {
+            $table->add_item(HTMLHelper::_('date', $row->date_amended, 'd M y'));
+
+            if ($this->scope == '') {
+                $table->add_item($row->home_group);
+            }
+
+            $table->add_item($row->preferred_name);
+            $table->add_item($row->membershipNumber);
+            //$table->add_item($row->email);
+            $table->add_item(HTMLHelper::_('date', $row->groupJoinedDate, 'd M y'));
+            $table->add_item($row->field_name);
+            $table->add_item($row->email);
+            $table->add_item($row->field_value);
+            $table->generate_line();
+        }
+        $table->generate_table();
 
         echo $this->toolsHelper->backButton($this->back);
     }

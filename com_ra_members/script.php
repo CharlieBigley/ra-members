@@ -250,14 +250,13 @@ class Com_Ra_membersInstallerScript {
         echo $sql . '<br>';
         return '1.0.2';
         $json = $this->getValue($sql);
-        if (is_null($json)){
+        if (is_null($json)) {
             echo 'Could not find previous version<br>>';
             return '1.0.2';
         } else {
             $data = $json;
             return $data->version;
         }
-        
     }
 
     /**
@@ -337,23 +336,23 @@ class Com_Ra_membersInstallerScript {
             );
             return false;
         }
-        
-        if (ComponentHelper::isEnabled('com_ra_tools', true)) {
-          $tools_versions = $this->getVersions('com_ra_tools');
 
-          $tools_required = '3.5.5';
-          echo '<p>Version ' . $tools_required . ' of com_ra_tools required<br>';
-          if (version_compare($tools_version, $tools_required, 'ge')) {
-            echo '<p>Version ' . $tools_versions . ' of com_ra_tools found</p>';
-          } else {
-            echo 'Version ' . $tools_version . ' of com_ra_tools found</p>';
-            echo '<p>WARNING: Please install version of com_ra_tools >=' . $tools_required . '</p>';
+        if (ComponentHelper::isEnabled('com_ra_tools', true)) {
+            $tools_versions = $this->getVersions('com_ra_tools');
+
+            $tools_required = '3.5.5';
+            echo '<p>Version ' . $tools_required . ' of com_ra_tools required<br>';
+            if (version_compare($tools_version, $tools_required, 'ge')) {
+                echo '<p>Version ' . $tools_versions . ' of com_ra_tools found</p>';
+            } else {
+                echo 'Version ' . $tools_version . ' of com_ra_tools found</p>';
+                echo '<p>WARNING: Please install version of com_ra_tools >=' . $tools_required . '</p>';
 //            return false;
-          }
+            }
         } else {
-          echo 'WARNING: This component will not function unless component RA Tools (com_ra_tools) is installed first';
+            echo 'WARNING: This component will not function unless component RA Tools (com_ra_tools) is installed first';
 //          return false;
-        }    
+        }
 
 //        $v_403 = '4.0.3';
 //        if (version_compare($versions->component, $v_403, '>')) {
@@ -444,15 +443,18 @@ class Com_Ra_membersInstallerScript {
         } else {
             echo '<p>Version is currently ' . $this->current_version . ', ';
             echo 'Requires version >= ' . $this->version_required . '</p>';
-        }      
+        }
         if (version_compare($this->current_version, '1.1.0', 'le')) {
             $this->checkColumn('ra_organisations', 'mailman_active', 'A', 'VARCHAR(1) DEFAULT "N" AFTER longitude; ');
-/*
-            $this->checkColumn('ra_mail_shots', 'record_type', 'A', 'VARCHAR(1) DEFAULT "M" AFTER id; ');
-            $this->checkColumn('ra_mail_shots', 'mail_list_id', 'U', 'INT NULL; ');
-            $this->checkColumn('ra_mail_shots', 'event_id', 'A', 'INT NULL AFTER mail_list_id; ');           
+            /*
+              $this->checkColumn('ra_mail_shots', 'record_type', 'A', 'VARCHAR(1) DEFAULT "M" AFTER id; ');
+              $this->checkColumn('ra_mail_shots', 'mail_list_id', 'U', 'INT NULL; ');
+              $this->checkColumn('ra_mail_shots', 'event_id', 'A', 'INT NULL AFTER mail_list_id; ');
 
-*/
+             */
+        }
+        if (version_compare($this->current_version, '1.1.7', 'le')) {
+            $this->checkColumn('ra_profiles', 'welcome_sent_date', 'A', 'DATE DEFAULT NULL AFTER affiliateMemberPrimaryGroup; ');
         }
         return true;
     }

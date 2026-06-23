@@ -34,7 +34,7 @@ class OrganisationsController extends AdminController {
 
         $this->app = Factory::getApplication();
         $this->toolsHelper = new ToolsHelper;
-        $this->back = 'index.php?option=com_ra_members&view=organisations';
+        $this->back = 'administrator/index.php?option=com_ra_members&view=organisations';
         // Import CSS
         $wa = Factory::getApplication()->getDocument()->getWebAssetManager();
         $wa->registerAndUseStyle('ramblers', 'com_ra_tools/ramblers.css');
@@ -58,7 +58,8 @@ class OrganisationsController extends AdminController {
         foreach ($loadHelper->messages as $message) {
             echo $message . '<br>';
         }
-
+        $target = 'administrator/index.php?option=com_ra_members&view=members';
+        echo $this->toolsHelper->buildButton($target, 'List Members');
         echo $this->toolsHelper->backButton($this->back);
 //        if ($result === true) {
 //            $this->setMessage(Text::_('COM_RA_MAILMAN_LOAD_SUCCESS'), 'success');

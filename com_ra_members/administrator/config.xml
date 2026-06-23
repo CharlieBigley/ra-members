@@ -10,7 +10,7 @@
         >
             <option value="1">JYES</option>
             <option value="0">JNO</option>
-    </field>        
+    </field>           
     </fieldset>
 
     <fieldset name="permissions" description="JCONFIG_PERMISSIONS_DESC" label="JCONFIG_PERMISSIONS_LABEL">

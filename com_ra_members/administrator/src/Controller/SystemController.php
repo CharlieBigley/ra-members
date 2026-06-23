@@ -1,12 +1,15 @@
 <?php
 
 /**
- * @version     1.0.1
- * @package     com_ra_memebrs
- *
- * @copyright   Copyright (C) 2005 - 2019 Open Source Matters, Inc. All rights reserved.
+ * @version     1.1.7
+ * @package     com_ra_members
+ * @copyright   Copyright (C) 2020. All rights reserved.
  * @license     GNU General Public License version 2 or later; see LICENSE.txt
- * 25/04/26 CB Created
+ * @author      Charlie <webmaster@bigley.me.uk> - https://www.stokeandnewcastleramblers.org.uk
+ *
+ * 09/06/26 CB created
+ * 15/06/26 CB add new fields in ra_profiles, check ra_logfile / sub_system
+ * 15/06/26 CB add new field welcome_sent_date to ra_profiles
  */
 
 namespace Ramblers\Component\Ra_members\Administrator\Controller;
@@ -22,25 +25,23 @@ use Joomla\CMS\MVC\Controller\FormController;
 use Joomla\CMS\Application\CMSApplication;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
 use Joomla\Input\Input;
-use Ramblers\Component\Ra_mailman\Site\Helpers\Mailhelper;
-use Ramblers\Component\Ra_mailman\Site\Helpers\SubscriptionHelper;
-//use Ramblers\Component\Ra_mailman\Site\Helpers\UserHelper;
 use Ramblers\Component\Ra_tools\Site\Helpers\SchemaHelper;
 use Ramblers\Component\Ra_tools\Site\Helpers\ToolsHelper;
-use Ramblers\Component\Ra_tools\Site\Helpers\UserHelper;
 
-class SystemController extends FormController
-{
+//use Ramblers\Component\Ra_tools\Site\Helpers\UserHelper;
+
+class SystemController extends FormController {
+
     protected $app;
     protected $back;
     protected $db;
     protected $toolsHelper;
 
     public function __construct(
-        $config = [],
-        MVCFactoryInterface $factory = null,
-        CMSApplication $app = null,
-        Input $input = null
+            $config = [],
+            MVCFactoryInterface $factory = null,
+            CMSApplication $app = null,
+            Input $input = null
     ) {
         parent::__construct($config, $factory, $app, $input);
 
@@ -142,6 +143,7 @@ class SystemController extends FormController
             }
         }
     }
+
     public function checkSchema() {
         $toolsHelper = new ToolsHelper;
         if (!$toolsHelper->isSuperuser()) {
@@ -177,6 +179,7 @@ class SystemController extends FormController
             PRIMARY KEY (`id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 DEFAULT COLLATE=utf8mb4_unicode_ci;';
         $helper->checkTable('ra_import_reports', $details);
+        $helper->checkColumn('ra_api_sites', 'sub_system', 'U', 'VARCHAR(12) ');
 //        $helper->checkColumn('ra_events', 'max_bookings', 'A', 'INT NOT NULL DEFAULT "1" AFTER bookable; ');
         $target = 'administrator/index.php?option=com_ra_tools&view=dashboard';
         echo $this->toolsHelper->backButton($target);
@@ -195,23 +198,23 @@ class SystemController extends FormController
             $sql .= $this->db->quote('Sent to you as a walk leader for ' . $name);
             // $sql .= 'VALUES ("1", "Members Newsletter", ';
             // $sql .= $this->db->quote($code) . ', ' . $this->db->quote($code) . ',';
-            // $sql .= ' "O", "1", "1", "0", ';         
+            // $sql .= ' "O", "1", "1", "0", ';
             //  $sql .= $this->db->quote('Sent to you as a member of the Ramblers ' . $name);
-            $sql .= ', "0", NULL, NULL, current_timestamp(), "1", NULL, "0");'; 
+            $sql .= ', "0", NULL, NULL, current_timestamp(), "1", NULL, "0");';
             $this->toolsHelper->executeCommand($sql);
         }
     }
- 
+
     public function createLists() {
         $sql = 'SELECT code FROM #__ra_organisations ';
-        $sql .= 'ORDER BY code'; 
+        $sql .= 'ORDER BY code';
         $rows = $this->toolsHelper->getRows($sql);
         foreach ($rows as $row) {
             $this->createList($row->code);
         }
         $target = 'administrator/index.php?option=com_ra_tools&view=dashboard';
         echo $this->toolsHelper->backButton($target);
-    }   
+    }
 
     function logMessage($record_type, $ref, $message) {
         $db = Factory::getDbo();
@@ -250,7 +253,6 @@ class SystemController extends FormController
         $back = 'administrator/index.php?option=com_ra_mailman&view=reports';
         echo $this->toolsHelper->backButton($back);
     }
-
 
     public function sendEmail() {
         // Invoked from report recentMailshots to force resend on-line
@@ -305,8 +307,9 @@ class SystemController extends FormController
             echo $message;
         }
     }
-    public function UpdateNumbership() {
- //       $id = $this->objApp->input->getInt('id', '0');
+
+    public function UpdateMembership() {
+        //       $id = $this->objApp->input->getInt('id', '0');
         ToolBarHelper::title($this->prefix . 'UpdateNumbership');
         if (!$this->toolsHelper->isSuperuser()) {
             echo 'Invalid access<br>';
@@ -323,49 +326,56 @@ class SystemController extends FormController
         $back = 'administrator/index.php?option=com_ra_tools&view=dashboard';
         echo $this->toolsHelper->backButton($back);
     }
-    public function UpdateSchema() {
- //     index.php?option=com_ra_members&task=system.UpdateSchema
-        ToolBarHelper::title($this->prefix . 'UpdateSchema');
-        /*
-        $this->checkColumn('ra_profiles', 'membershipNumber', 'A','INT NULL AFTER home_group');
-        $this->checkColumn('ra_profiles', 'memberType', 'A','VARCHAR(10) NOT NULL DEFAULT "Individual" AFTER membershipNumber');
-        $this->checkColumn('ra_profiles', 'memberTerm','A','VARCHAR(10) NOT NULL DEFAULT "individual" AFTER  memberType');
-        $this->checkColumn('ra_profiles', 'memberStatus','A','VARCHAR(10) NOT NULL DEFAULT "active" AFTER memberTerm');
-        $this->checkColumn('ra_profiles', 'membershipType','A','VARCHAR(10) NOT NULL DEFAULT "annual" AFTER memberStatus');
-        $this->checkColumn('ra_profiles', 'jointWith','A','INT NULL AFTER membershipType');
-        $this->checkColumn('ra_profiles', 'title','A','VARCHAR(10) NULL AFTER jointWith');
-        $this->checkColumn('ra_profiles', 'initials','A','VARCHAR(100) NULL AFTER title');
-        $this->checkColumn('ra_profiles', 'firstName','A','VARCHAR(100) NOT NULL AFTER initials');
-        $this->checkColumn('ra_profiles', 'lastName','A','VARCHAR(100) NULL AFTER firstName');
-        $this->checkColumn('ra_profiles', 'address1','A','VARCHAR(100) NULL AFTER lastName');
-        $this->checkColumn('ra_profiles', 'address2','A','VARCHAR(100) NULL AFTER address1');
-        $this->checkColumn('ra_profiles', 'address3','A','VARCHAR(100) NULL AFTER address2');
-        $this->checkColumn('ra_profiles', 'town','A','VARCHAR(100) NULL AFTER address3');
-        $this->checkColumn('ra_profiles', 'county','A','VARCHAR(100) NULL AFTER town');
-        $this->checkColumn('ra_profiles', 'country','A','VARCHAR(100) NULL AFTER county');
-        $this->checkColumn('ra_profiles', 'postcode','A','VARCHAR(10) NULL AFTER country');
-        $this->checkColumn('ra_profiles', 'landlineTelephone','A','VARCHAR(50) NULL AFTER postcode');
-        $this->checkColumn('ra_profiles', 'mobileNumber','A','VARCHAR(50) NULL AFTER landlineTelephone');
-        $this->checkColumn('ra_profiles', 'membershipExpiryDate','A','DATE NULL AFTER mobileNumber');
-        $this->checkColumn('ra_profiles', 'ramblersJoinedDate','A','DATE NULL AFTER membershipExpiryDate');
-        $this->checkColumn('ra_profiles', 'areaJoinedDate','A','DATE NULL AFTER ramblersJoinedDate');
-        $this->checkColumn('ra_profiles', 'groupJoinedDate','A','DATE NULL AFTER areaJoinedDate');
-        $this->checkColumn('ra_profiles', 'volunteer','A','CHAR(1) NULL AFTER groupJoinedDate');
-        $this->checkColumn('ra_profiles', 'emailMarketingConsent','A','CHAR(1) NULL AFTER volunteer');
-        $this->checkColumn('ra_profiles', 'emailPermissionLastUpdated','A','DATE NULL AFTER emailMarketingConsent');
-        $this->checkColumn('ra_profiles', 'postDirectMarketing','A','CHAR(1) NULL AFTER emailPermissionLastUpdated');
-        $this->checkColumn('ra_profiles', 'postPermissionLastUpdated','A','DATE NULL AFTER postDirectMarketing');
-        $this->checkColumn('ra_profiles', 'telephoneDirectMarketing','A','CHAR(1) NULL AFTER groupJoinedDate');
-        $this->checkColumn('ra_profiles', 'telephonePermissionLastUpdated','A','DATE NULL AFTER postPermissionLastUpdated');
-        $this->checkColumn('ra_profiles', 'walkProgrammeOptOut','A','CHAR(1) NULL AFTER telephonePermissionLastUpdated');
-        $this->checkColumn('ra_profiles', 'affiliateMemberPrimaryGroup','A','VARCHAR(4) NULL AFTER walkProgrammeOptOut');
-*/
 
-        $this->checkColumn('ra_profiles', 'groupMarketingConsent','A','CHAR(1) NULL AFTER telephonePermissionLastUpdated');
-        $this->checkColumn('ra_profiles', 'areaMarketingConsent','A','CHAR(1) NULL AFTER groupMarketingConsent');
-        $this->checkColumn('ra_profiles', 'otherMarketingConsent','A','CHAR(1) NULL AFTER areaMarketingConsent');
-        $this->checkColumn('ra_profiles', 'MembershipSecretary','A','CHAR(1) NULL AFTER otherMarketingConsent');
-         $back = 'administrator/index.php?option=com_ra_tools&view=dashboard';
-        echo $this->toolsHelper->backButton($back);       
-    }    
+    public function updateSchema() {
+        //     index.php?option=com_ra_members&task=system.UpdateSchema
+        ToolBarHelper::title($this->prefix . 'UpdateSchema');
+        $sql = 'ALTER TABLE `#__ra_profiles` DROP PRIMARY KEY;';
+        echo "$sql<br>";
+        $this->toolsHelper->executeCommand($sql);
+        $sql = 'ALTER TABLE `#__ra_profiles` ADD `member_id` INT NOT NULL AUTO_INCREMENT AFTER `id`, ADD PRIMARY KEY (`member_id`)';
+        echo "$sql<br>";
+        $this->toolsHelper->executeCommand($sql);
+
+        $this->checkColumn('ra_profiles', 'membershipNumber', 'A', 'INT NULL AFTER home_group');
+        $this->checkColumn('ra_profiles', 'memberType', 'A', 'VARCHAR(10) NOT NULL DEFAULT "Individual" AFTER membershipNumber');
+        $this->checkColumn('ra_profiles', 'memberTerm', 'A', 'VARCHAR(10) NOT NULL DEFAULT "individual" AFTER  memberType');
+        $this->checkColumn('ra_profiles', 'memberStatus', 'A', 'VARCHAR(10) NOT NULL DEFAULT "active" AFTER memberTerm');
+        $this->checkColumn('ra_profiles', 'membershipType', 'A', 'VARCHAR(10) NOT NULL DEFAULT "annual" AFTER memberStatus');
+        $this->checkColumn('ra_profiles', 'jointWith', 'A', 'INT NULL AFTER membershipType');
+        $this->checkColumn('ra_profiles', 'title', 'A', 'VARCHAR(10) NULL AFTER jointWith');
+        $this->checkColumn('ra_profiles', 'initials', 'A', 'VARCHAR(100) NULL AFTER title');
+        $this->checkColumn('ra_profiles', 'firstName', 'A', 'VARCHAR(100) NOT NULL AFTER initials');
+        $this->checkColumn('ra_profiles', 'lastName', 'A', 'VARCHAR(100) NULL AFTER firstName');
+        $this->checkColumn('ra_profiles', 'address1', 'A', 'VARCHAR(100) NULL AFTER lastName');
+        $this->checkColumn('ra_profiles', 'address2', 'A', 'VARCHAR(100) NULL AFTER address1');
+        $this->checkColumn('ra_profiles', 'address3', 'A', 'VARCHAR(100) NULL AFTER address2');
+        $this->checkColumn('ra_profiles', 'town', 'A', 'VARCHAR(100) NULL AFTER address3');
+        $this->checkColumn('ra_profiles', 'county', 'A', 'VARCHAR(100) NULL AFTER town');
+        $this->checkColumn('ra_profiles', 'country', 'A', 'VARCHAR(100) NULL AFTER county');
+        $this->checkColumn('ra_profiles', 'postcode', 'A', 'VARCHAR(10) NULL AFTER country');
+        $this->checkColumn('ra_profiles', 'landlineTelephone', 'A', 'VARCHAR(50) NULL AFTER postcode');
+        $this->checkColumn('ra_profiles', 'mobileNumber', 'A', 'VARCHAR(50) NULL AFTER landlineTelephone');
+        $this->checkColumn('ra_profiles', 'membershipExpiryDate', 'A', 'DATE NULL AFTER mobileNumber');
+        $this->checkColumn('ra_profiles', 'ramblersJoinedDate', 'A', 'DATE NULL AFTER membershipExpiryDate');
+        $this->checkColumn('ra_profiles', 'areaJoinedDate', 'A', 'DATE NULL AFTER ramblersJoinedDate');
+        $this->checkColumn('ra_profiles', 'groupJoinedDate', 'A', 'DATE NULL AFTER areaJoinedDate');
+        $this->checkColumn('ra_profiles', 'volunteer', 'A', 'CHAR(1) NULL AFTER groupJoinedDate');
+        $this->checkColumn('ra_profiles', 'emailMarketingConsent', 'A', 'CHAR(1) NULL AFTER volunteer');
+        $this->checkColumn('ra_profiles', 'emailPermissionLastUpdated', 'A', 'DATE NULL AFTER emailMarketingConsent');
+        $this->checkColumn('ra_profiles', 'postDirectMarketing', 'A', 'CHAR(1) NULL AFTER emailPermissionLastUpdated');
+        $this->checkColumn('ra_profiles', 'postPermissionLastUpdated', 'A', 'DATE NULL AFTER postDirectMarketing');
+        $this->checkColumn('ra_profiles', 'telephoneDirectMarketing', 'A', 'CHAR(1) NULL AFTER groupJoinedDate');
+        $this->checkColumn('ra_profiles', 'telephonePermissionLastUpdated', 'A', 'DATE NULL AFTER postPermissionLastUpdated');
+        $this->checkColumn('ra_profiles', 'walkProgrammeOptOut', 'A', 'CHAR(1) NULL AFTER telephonePermissionLastUpdated');
+        $this->checkColumn('ra_profiles', 'affiliateMemberPrimaryGroup', 'A', 'VARCHAR(4) NULL AFTER walkProgrammeOptOut');
+        $this->checkColumn('ra_profiles', 'groupMarketingConsent', 'A', 'CHAR(1) NULL AFTER telephonePermissionLastUpdated');
+        $this->checkColumn('ra_profiles', 'areaMarketingConsent', 'A', 'CHAR(1) NULL AFTER groupMarketingConsent');
+        $this->checkColumn('ra_profiles', 'otherMarketingConsent', 'A', 'CHAR(1) NULL AFTER areaMarketingConsent');
+        $this->checkColumn('ra_profiles', 'MembershipSecretary', 'A', 'CHAR(1) NULL AFTER otherMarketingConsent');
+        $this->checkColumn('ra_profiles', 'welcome_sent_date', 'A', 'DATE NULL AFTER affiliateMemberPrimaryGroup');
+        $back = 'administrator/index.php?option=com_ra_tools&view=dashboard';
+        echo $this->toolsHelper->backButton($back);
+    }
+
 }

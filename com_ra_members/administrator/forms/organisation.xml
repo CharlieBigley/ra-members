@@ -31,7 +31,7 @@
                buttons="true" 
                filter="raw"
                type="editor" 
-               default="<i>Sent from xxx Ramblers using the MailMan software package</i>" 
+               default="Sent from xxx Ramblers using the MailMan software package" 
                label="Email Header" 
                description="Text at the top of all messages"/>
         <field name="logo"

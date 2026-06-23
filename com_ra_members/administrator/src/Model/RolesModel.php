@@ -1,13 +1,15 @@
 <?php
+
 /**
- * @version    CVS: 1.0.3
- * @package    Com_Ra_members
+ * @version    1.1.7
+ * @package    com_ra_members
  * @author     Charlie Bigley <charlie@bigley.me.uk>
  * @copyright  2026 Charlie Bigley
  * @license    GNU General Public License version 2 or later; see LICENSE.txt
  */
 
 namespace Ramblers\Component\Ra_members\Administrator\Model;
+
 // No direct access.
 defined('_JEXEC') or die;
 
@@ -18,7 +20,6 @@ use \Joomla\CMS\Language\Text;
 use \Joomla\CMS\Helper\TagsHelper;
 use \Joomla\Database\ParameterType;
 use \Joomla\Utilities\ArrayHelper;
-use Ramblers\Component\Ra_members\Administrator\Helper\Ra_membersHelper;
 use \Joomla\Database\DatabaseInterface;
 use Ramblers\Component\Ra_mailman\Site\Helpers\Mailhelper;
 use Ramblers\Component\Ra_tools\Site\Helpers\ToolsHelper;
@@ -28,171 +29,149 @@ use Ramblers\Component\Ra_tools\Site\Helpers\ToolsHelper;
  *
  * @since  1.0.3
  */
-class RolesModel extends ListModel
-{
-	protected $toolsHelper;
-	/**
-	* Constructor.
-	*
-	* @param   array  $config  An optional associative array of configuration settings.
-	*
-	* @see        JController
-	* @since      1.6
-	*/
-	public function __construct($config = array())
-	{
-		if (empty($config['filter_fields']))
-		{
-			$config['filter_fields'] = array(
-				'id', 'a.id',
-				'created_by', 'a.created_by',
-				'modified_by', 'a.modified_by',
-				'created', 'a.created',
-				'modified', 'a.modified',
-				'preferred_name', 'a.preferred_name',
-				'role', 'a.role',
-				'membership_number', 'a.membership_number',
-				'home_group', 'a.home_group',
-			);
-		}
+class RolesModel extends ListModel {
 
-		parent::__construct($config);
-	}
+    protected $toolsHelper;
 
+    /**
+     * Constructor.
+     *
+     * @param   array  $config  An optional associative array of configuration settings.
+     *
+     * @see        JController
+     * @since      1.6
+     */
+    public function __construct($config = array()) {
+        if (empty($config['filter_fields'])) {
+            $config['filter_fields'] = array(
+                'id', 'a.id',
+                'preferred_name', 'p.preferred_name',
+                'role', 'a.role',
+                'membership_number', 'p.membership_number',
+                'home_group', 'p.home_group',
+                'membershipNumber',
+            );
+        }
 
-	
+        parent::__construct($config);
+    }
 
-	
+    /**
+     * Method to auto-populate the model state.
+     *
+     * Note. Calling getState in this method will result in recursion.
+     *
+     * @param   string  $ordering   Elements order
+     * @param   string  $direction  Order direction
+     *
+     * @return void
+     *
+     * @throws Exception
+     */
+    protected function populateState($ordering = null, $direction = null) {
+        // List state information.
+        parent::populateState('id', 'DESC');
 
-	
+        $context = $this->getUserStateFromRequest($this->context . '.filter.search', 'filter_search');
+        $this->setState('filter.search', $context);
 
-	/**
-	 * Method to auto-populate the model state.
-	 *
-	 * Note. Calling getState in this method will result in recursion.
-	 *
-	 * @param   string  $ordering   Elements order
-	 * @param   string  $direction  Order direction
-	 *
-	 * @return void
-	 *
-	 * @throws Exception
-	 */
-	protected function populateState($ordering = null, $direction = null)
-	{
-		// List state information.
-		parent::populateState('id', 'DESC');
+        // Split context into component and optional section
+        if (!empty($context)) {
+            $parts = FieldsHelper::extract($context);
 
-		$context = $this->getUserStateFromRequest($this->context.'.filter.search', 'filter_search');
-		$this->setState('filter.search', $context);
+            if ($parts) {
+                $this->setState('filter.component', $parts[0]);
+                $this->setState('filter.section', $parts[1]);
+            }
+        }
+    }
 
-		// Split context into component and optional section
-		if (!empty($context))
-		{
-			$parts = FieldsHelper::extract($context);
+    /**
+     * Method to get a store id based on model configuration state.
+     *
+     * This is necessary because the model is used by the component and
+     * different modules that might need different sets of data or different
+     * ordering requirements.
+     *
+     * @param   string  $id  A prefix for the store id.
+     *
+     * @return  string A store id.
+     *
+     * @since   1.0.3
+     */
+    protected function getStoreId($id = '') {
+        // Compile the store id.
+        $id .= ':' . $this->getState('filter.search');
+        $id .= ':' . $this->getState('filter.state');
 
-			if ($parts)
-			{
-				$this->setState('filter.component', $parts[0]);
-				$this->setState('filter.section', $parts[1]);
-			}
-		}
-	}
+        return parent::getStoreId($id);
+    }
 
-	/**
-	 * Method to get a store id based on model configuration state.
-	 *
-	 * This is necessary because the model is used by the component and
-	 * different modules that might need different sets of data or different
-	 * ordering requirements.
-	 *
-	 * @param   string  $id  A prefix for the store id.
-	 *
-	 * @return  string A store id.
-	 *
-	 * @since   1.0.3
-	 */
-	protected function getStoreId($id = '')
-	{
-		// Compile the store id.
-		$id .= ':' . $this->getState('filter.search');
-		$id .= ':' . $this->getState('filter.state');
-
-		
-		return parent::getStoreId($id);
-		
-	}
-
-	/**
-	 * Build an SQL query to load the list data.
-	 *
-	 * @return  DatabaseQuery
-	 *
-	 * @since   1.0.3
-	 */
-	protected function getListQuery()
-	{
-		// See if we are running the full version
+    /**
+     * Build an SQL query to load the list data.
+     *
+     * @return  DatabaseQuery
+     *
+     * @since   1.0.3
+     */
+    protected function getListQuery() {
+        // See if we are running the full version
         $toolsHelper = new ToolsHelper;
         $mailHelper = new MailHelper;
         $group = $mailHelper->getDefaultGroup();
-		// Create a new query object.
-		$db    = Factory::getContainer()->get(DatabaseInterface::class);
-		$query = $db->getQuery(true);
+        // Create a new query object.
+        $db = Factory::getContainer()->get(DatabaseInterface::class);
+        $query = $db->getQuery(true);
 
-		// Select the required fields from the table.
-		$query->select(
-			$this->getState(
-				'list.select', 'DISTINCT a.*'
-			)
-		);
-		$query->select('p.preferred_name, o.name');
-		$query->from('`#__ra_roles` AS a');
-		$query->join("LEFT", "#__ra_organisations AS o ON o.code=a.organisation_code");
-		$query->join("LEFT", "#__ra_profiles AS p ON p.member_id=a.member_id");
+        // Select the required fields from the table.
+        $query->select(
+                $this->getState(
+                        'list.select', 'DISTINCT a.*'
+                )
+        );
+        $query->select('p.preferred_name, p.membershipNumber, o.name');
+        $query->from('`#__ra_roles` AS a');
+        $query->join("LEFT", "#__ra_organisations AS o ON o.code=a.organisation_code");
+        $query->join("LEFT", "#__ra_profiles AS p ON p.member_id=a.member_id");
         // For non full version, only show Roles for the current User's Group
         if (($group !== 'N') AND ($toolsHelper->isSuperuser() === false)) {
-             $query->where('a.organisation_code=' . $this->_db->quote($group));
-        }		
+            $query->where('a.organisation_code=' . $this->_db->quote($group));
+        }
 
-		// Filter by search in title
-		$search = $this->getState('filter.search');
+        // Filter by search in title
+        $search = $this->getState('filter.search');
 
-		if (!empty($search))
-		{
-			if (stripos($search, 'id:') === 0)
-			{
-				$query->where('a.id = ' . (int) substr($search, 3));
-			}
-			else
-			{
-				$search = $db->Quote('%' . $db->escape($search, true) . '%');
-				$query->where('( a.id LIKE ' . $search . '  OR  a.preferred_name LIKE ' . $search . '  OR  a.role LIKE ' . $search . '  OR  a.membership_number LIKE ' . $search . '  OR  a.home_group LIKE ' . $search . ' )');
-			}
-		}
-		
-		// Add the list ordering clause.
-		$orderCol  = $this->state->get('list.ordering', 'id');
-		$orderDirn = $this->state->get('list.direction', 'DESC');
+        if (!empty($search)) {
+            if (stripos($search, 'id:') === 0) {
+                $query->where('a.id = ' . (int) substr($search, 3));
+            } else {
+                $search = $db->Quote('%' . $db->escape($search, true) . '%');
+                $query->where('( a.id LIKE ' . $search . '  OR  a.preferred_name LIKE ' . $search . '  OR  a.role LIKE ' . $search . '  OR  a.membership_number LIKE ' . $search . '  OR  a.home_group LIKE ' . $search . ' )');
+            }
+        }
 
-		if ($orderCol && $orderDirn)
-		{
-			$query->order($db->escape($orderCol . ' ' . $orderDirn));
-		}
+        // Add the list ordering clause.
+        $orderCol = $this->state->get('list.ordering', 'id');
+        $orderDirn = $this->state->get('list.direction', 'DESC');
 
-		return $query;
-	}
+        if ($orderCol && $orderDirn) {
+            $query->order($db->escape($orderCol . ' ' . $orderDirn));
+        }
+        if (JDEBUG) {
+            Factory::getApplication()->enqueueMessage('sql = ' . (string) $query, 'notice');
+        }
+        return $query;
+    }
 
-	/**
-	 * Get an array of data items
-	 *
-	 * @return mixed Array of data items on success, false on failure.
-	 */
-	public function getItems()
-	{
-		$items = parent::getItems();
-		
+    /**
+     * Get an array of data items
+     *
+     * @return mixed Array of data items on success, false on failure.
+     */
+    public function getItems() {
+        $items = parent::getItems();
 
-		return $items;
-	}
+        return $items;
+    }
+
 }

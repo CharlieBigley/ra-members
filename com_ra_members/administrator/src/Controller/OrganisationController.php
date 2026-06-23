@@ -25,8 +25,9 @@ use Ramblers\Component\Ra_tools\Site\Helpers\ToolsTable;
 /**
  * Organisation controller class.
  */
-class OrganisationController extends FormController
-{
+class OrganisationController extends FormController {
+
+    protected $app;
     protected $back;
     protected $callback;
     protected $toolsHelper;
@@ -34,13 +35,13 @@ class OrganisationController extends FormController
     protected $view_list = 'organisations';
 
     public function __construct(
-        $config = [],
-        MVCFactoryInterface $factory = null,
-        CMSApplication $app = null,
-        Input $input = null
+            $config = [],
+            MVCFactoryInterface $factory = null,
+            CMSApplication $app = null,
+            Input $input = null
     ) {
         parent::__construct($config, $factory, $app, $input);
-
+        $this->app = Factory::getApplication();
         $this->toolsHelper = new ToolsHelper;
         $this->back = '/administrator/index.php?option=com_ra_members&view=organisations';
         $this->callback = Factory::getApplication()->getUserState('com_ra_members.reports.callback');
@@ -49,16 +50,15 @@ class OrganisationController extends FormController
         $wa->registerAndUseStyle('ramblers', 'com_ra_tools/ramblers.css');
     }
 
-    public function addRole(){
+    public function addRole() {
 
     }
 
-    public function addRoleRecord(){
+    public function addRoleRecord() {
 
     }
 
-    public function cancel($key = null)
-    {
+    public function cancel($key = null) {
         if ($this->callback === 'dashboard') {
             $this->setRedirect('/administrator/index.php?option=com_ra_tools&view=dashboard');
 
@@ -68,8 +68,7 @@ class OrganisationController extends FormController
         $this->setRedirect($this->back);
     }
 
-    public function configure()
-    {
+    public function configure() {
         $code = Factory::getApplication()->input->getCmd('code', '');
 
         if (empty($code)) {
@@ -81,9 +80,9 @@ class OrganisationController extends FormController
 
         $db = Factory::getContainer()->get('DatabaseDriver');
         $query = $db->getQuery(true)
-            ->select('id')
-            ->from('#__ra_organisations')
-            ->where('code = ' . $db->quote($code));
+                ->select('id')
+                ->from('#__ra_organisations')
+                ->where('code = ' . $db->quote($code));
 
         $db->setQuery($query);
         $id = $db->loadResult();
@@ -99,8 +98,7 @@ class OrganisationController extends FormController
         $this->setRedirect('index.php?option=com_ra_members&view=organisation&layout=edit&id=' . $id . '&return=' . $return);
     }
 
-    public function getModel($name = 'Organisation', $prefix = 'Administrator', $config = ['ignore_request' => true])
-    {
+    public function getModel($name = 'Organisation', $prefix = 'Administrator', $config = ['ignore_request' => true]) {
         if ($name === '' || strcasecmp($name, 'Organisations') === 0) {
             $name = 'Organisation';
         }
@@ -114,8 +112,7 @@ class OrganisationController extends FormController
         return $model;
     }
 
-    public function save($key = null, $urlVar = null)
-    {
+    public function save($key = null, $urlVar = null) {
         $result = parent::save($key, $urlVar);
 
         if ($result) {
@@ -126,10 +123,14 @@ class OrganisationController extends FormController
             }
         }
     }
-    public function deleteRole(){}
 
-        public function showGroups()
-    {
+    public function deleteRole() {
+        $id = Factory::getApplication()->input->getInt('id', '');
+        $this->app->enqueueMessage('Role to be deleted ' . $id, 'error');
+        $this->setRedirect('/administrator/index.php?option=com_ra_members&view=organisation&layout=edit');
+    }
+
+    public function showGroups() {
         $code = Factory::getApplication()->input->getCmd('area', '');
         $sql = 'SELECT name from #__ra_organisations WHERE code = ' . Factory::getContainer()->get('DatabaseDriver')->quote($code);
         $area = $this->toolsHelper->getValue($sql);
@@ -229,8 +230,35 @@ class OrganisationController extends FormController
         echo $this->toolsHelper->backButton($this->back);
     }
 
-    public function showRoles(){
-        
+    public function showRoles() {
+        $code = Factory::getApplication()->input->getCmd('code', '');
+        $sql = 'SELECT name from #__ra_organisations WHERE code = ' . Factory::getContainer()->get('DatabaseDriver')->quote($code);
+        $name = $this->toolsHelper->getValue($sql);
+        ToolbarHelper::title('Roles for ' . $name);
+        $target = 'administrator/index.php?option=com_ra_members&task=organisation.addRole&code=' . $code;
+        echo $this->toolsHelper->buildButton($target, 'Add Role');
+        $target_delete = 'administrator/index.php?option=com_ra_members&task=organisation.deleteRole&code=' . $code . '&id=';
+        $sql = 'SELECT r.*, p.preferred_name ';
+        $sql .= 'FROM #__ra_roles AS r ';
+        $sql .= 'LEFT JOIN #__ra_profiles AS p ON p.id=r.member_id ';
+        $sql .= 'WHERE r.organisation_code = ' . Factory::getContainer()->get('DatabaseDriver')->quote($code) . ' ';
+        $sql .= 'ORDER BY r.role ';
+
+        $table = new ToolsTable;
+        $table->add_header('Role,Member,Last updated,Action');
+        $rows = $this->toolsHelper->getRows($sql);
+
+        foreach ($rows as $row) {
+            $table->add_item($row->role);
+            $table->add_item($row->preferred_name);
+            $table->add_item(HTMLHelper::_('date', $row->last_updated, 'd M y'));
+            $link = $this->toolsHelper->buildButton($target_delete . $row->member_id, 'Delete Role', false, 'red');
+            $table->add_item($link);
+            $table->generate_line();
+        }
+
+        $table->generate_table();
+        echo $this->toolsHelper->backButton($this->back);
     }
 
 }

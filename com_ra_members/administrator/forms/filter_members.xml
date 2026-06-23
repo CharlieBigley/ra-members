@@ -50,8 +50,6 @@
                default="a.id DESC"
         >
             <option value="">JGLOBAL_SORT_BY</option>
-            <option value="a.id ASC">COM_RA_MEMBERS_ID_ASC</option>
-            <option value="a.id DESC">COM_RA_MEMBERS_ID_DESC</option>
             <option value="a.membershipNumber ASC">Mem No ASC</option>
             <option value="a.membershipNumber DESC">Mem No DESC</option>
             <option value="a.home_group ASC">Home group ASC</option>
@@ -59,6 +57,8 @@
             <option value="a.firstName ASC">First name ASC</option>
             <option value="a.firstName DESC">First name DESC</option>
             <option value="a.lastName ASC">Last name ASC</option>
+            <option value="u.email ASC">Email ASC</option>
+            <option value="u.email DESC">Email DESC</option>
             <option value="a.lastName DESC">Last name DESC</option>
             <option value="a.memberType ASC">Member type ASC</option>
             <option value="a.memberType DESC">Member type DESC</option>
@@ -68,8 +68,6 @@
             <option value="a.memberTerm DESC">Member term DESC</option>
             <option value="a.membershipExpiryDate ASC">Renewal date ASC</option>
             <option value="a.membershipExpiryDate DESC">Renewal date DESC</option>
-            <option value="a.salesforceId ASC">SF ID ASC</option>
-            <option value="a.salesforceId DESC">SF ID DESC</option>
         </field>
 
        <field name="limit"

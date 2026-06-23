@@ -1,4 +1,13 @@
 <?php
+/**
+ * @version     1.1.8
+ * @package     com_ra_members
+ * @copyright   Copyright (C) 2020. All rights reserved.
+ * @license     GNU General Public License version 2 or later; see LICENSE.txt
+ * @author      Charlie <webmaster@bigley.me.uk> - https://www.stokeandnewcastleramblers.org.uk
+ * 25/04/26 CB created
+ * 22/06/26 CB correct count of members
+ */
 defined('_JEXEC') or die;
 
 use Joomla\CMS\HTML\HTMLHelper;
@@ -109,14 +118,14 @@ if (empty($this->items)) {
         }
 
         echo '<td>';
-        $sql_count = 'SELECT COUNT(id) FROM #__ra_profiles WHERE membershipNumber IS NOT NULL AND ';
+        $sql_count = 'SELECT COUNT(member_id) FROM #__ra_profiles WHERE membershipNumber IS NOT NULL AND ';
         if ($item->record_type == 'A') {
             $memberCount = $objHelper->getValue($sql_count . 'home_group LIKE "' . $item->code . '%"');
         } else {
             $memberCount = $objHelper->getValue($sql_count . 'home_group = "' . $item->code . '"');
         }
         if (is_null($memberCount)) {
-            echo '0'    ;
+            echo '0';
         } else {
             echo '<a href="' . Route::_('index.php?option=com_ra_members&task=organisation.showMembers&code=' . $item->code) . '">';
             echo $memberCount . '</a>' . PHP_EOL;

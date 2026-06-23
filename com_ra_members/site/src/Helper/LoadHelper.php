@@ -12,6 +12,7 @@
  * @author     charles
  * 18/04/26 CB created
  * 05/06/26 CB include expired members
+ * 21/06/26 CB add lookupMember
  */
 
 namespace Ramblers\Component\Ra_members\Site\Helper;
@@ -32,6 +33,7 @@ class LoadHelper {
     protected $toolsHelper;
     protected $jsonHelper;
     protected $mailHelper;
+    protected $primary_list;
     protected $profileColumns;
     protected $auditColumns;
     protected $roleColumns;
@@ -39,7 +41,8 @@ class LoadHelper {
     public $batch_mode = false; // if true, messages are added to $this->messages instead of enqueued, for display at the end of the batch process
     public $comments;
     public $comment_count;
-    public $count_new = 0;
+    public $count_new_profiles = 0;
+    public $count_new_users = 0;
     public $count_not_updated = 0;
     public $count_updated = 0;
     public $errors;
@@ -133,11 +136,21 @@ class LoadHelper {
           ToolsHelper::getItem() helper returns false for SQL failures, that needs handling in
           the shared helper before callers can safely distinguish "not found" from "query failed".
          */
-        if (JDEBUG) {
-            $message = 'Checking email ' . $email . ' for member id ' . $member_id . ', profile id ' . $profile_id;
-            echo $message . '<br>';
-            $this->messages[] = $message;
+//        if (JDEBUG) {
+        $message = 'Checking email ' . $email . ' for member_id ';
+        if (is_null($member_id)) {
+            $message .= 'NULL';
+        } else {
+            $message .= $member_id;
         }
+        $message .= ', profile id ';
+        if (is_null($profile_id)) {
+            $message .= 'NULL';
+        } else {
+            $message .= $profile_id;
+        }
+        $this->messages[] = $message;
+//        }
         // see if an existing user record exists
         $existing_user = $this->lookupUser($email);
         if ($existing_user === false) {
@@ -160,7 +173,9 @@ class LoadHelper {
                 // update the profile record
                 $sql = 'UPDATE #__ra_profiles SET id=' . $existing_user->id;
                 $sql .= ' WHERE member_id=' . $member_id;
-                echo $sql . '<br>';
+                if (JDEBUG) {
+                    $this->messages[] = $sql;
+                }
                 $this->toolsHelper->executeCommand($sql);
             } else {
                 // create a new User record
@@ -169,28 +184,26 @@ class LoadHelper {
                 $userHelper->email = $email;
                 $userHelper->createUserDirect();
                 $user_id = $userHelper->user_id;
+                $this->count_new_users++;
                 if (JDEBUG) {
                     $message = 'Created new user record with id ' . $user_id . ' for email ' . $email;
-                    echo $message . '<br>';
                     $this->messages[] = $message;
-                    echo 'Updating profile record with id ' . $profile_id . ' to link to user record with id ' . $user_id . '<br>';
+                    $this->messages[] = 'Updating profile record with member_id ' . $member_id . ' to link to user record with id ' . $user_id;
                 }
                 // update the profile record
                 $sql = 'UPDATE #__ra_profiles SET id=' . $user_id;
                 $sql .= ' WHERE member_id=' . $member_id;
-                echo $sql . '<br>';
+                if (JDEBUG) {
+                    $this->messages[] = $sql;
+                }
                 $this->toolsHelper->executeCommand($sql);
             }
-            // Create a subscription to the primary mailing list
-            $primary_list = $this->getDefaultList($member_id);
-            if ($primary_list) {
-                if ($this->mailHelper->subscribe($primary_list, $user_id, 1, 3)) {
-                    $this->messages[] = 'Subscription created to list ' . $primary_list;
-                } else {
-                    $this->messages[] = 'Error creating subscription to list ' . $primary_list . ': ' . $this->mailHelper->message;
-                }
+            // Create a subscription to the primary mailing list for this group
+
+            if ($this->mailHelper->subscribe($this->primary_list, $user_id, 1, 3)) {
+                $this->messages[] = 'Subscription created to list ' . $this->primary_list;
             } else {
-                $this->messages[] = 'No default list found for member id ' . $member_id;
+                $this->messages[] = 'Error creating subscription to list ' . $this->primary_list . ': ' . $this->mailHelper->message;
             }
         } else {
             // we have a valid profile_id - update the email address if needed
@@ -276,11 +289,10 @@ class LoadHelper {
         return 0;
     }
 
-    public function getDefaultList($member_id) {
-        $sql = 'SELECT DISTINCT l.id FROM #__ra_mail_lists AS l ';
-        $sql .= 'LEFT JOIN #__ra_profiles AS p1 ON p1.home_group=l.group_code ';
-        $sql .= 'LEFT JOIN #__ra_profiles AS p2 ON p2.home_group=l.group_primary ';
-        $sql .= 'WHERE p1.member_id=' . (int) $member_id;
+    public function getDefaultList($code) {
+        $sql = 'SELECT id FROM #__ra_mail_lists ';
+        $sql .= 'WHERE group_code=' . $this->db->quote($code);
+        $sql .= ' AND group_primary=' . $this->db->quote($code);
         return $this->toolsHelper->getValue($sql);
     }
 
@@ -443,6 +455,10 @@ class LoadHelper {
         return $this->roleColumns;
     }
 
+    function lookupMember($member_id) {
+        return $this->getValue("SELECT preferred_name FROM #__ra_profiless WHERE member_id=" . (INT) $member_id);
+    }
+
     private function lookupPreferredName($member_id) {
         $sql = 'SELECT preferred_name FROM #__ra_profiles WHERE member_id=' . (int) $member_id;
         return $this->toolsHelper->getValue($sql);
@@ -562,7 +578,7 @@ class LoadHelper {
             'memberStatus' => 'memberStatus',
             'membershipArrangement' => 'membershipArrangement',
             'jointWith' => 'jointWith',
-            'areaName' => 'areaName',
+            'groupCode' => 'groupCode',
             'affiliateMemberPrimaryGroup' => 'affiliateMemberPrimaryGroup',
         );
 
@@ -595,16 +611,16 @@ class LoadHelper {
                     $member['memberType'] ?? null,
                     array('Member', 'Affiliate'),
                     'memberType',
-                    'Single'
+                    'Members'
             );
         }
 
         if (array_key_exists('membershipType', $columns)) {
             $data['membershipType'] = $this->normaliseEnumValue(
                     $member['membershipType'] ?? null,
-                    array('Single', 'Joint'),
+                    array('Individual', 'Joint'),
                     'membershipType',
-                    'Affiliate'
+                    'Individual'
             );
         }
 
@@ -613,7 +629,7 @@ class LoadHelper {
                     $member['membershipArrangement'] ?? $member['membershipType'] ?? null,
                     array('Individual', 'Joint'),
                     'membershipArrangement',
-                    'Affiliate'
+                    'Individual'
             );
         }
 
@@ -688,7 +704,6 @@ class LoadHelper {
         if ((int) $objectId <= 0) {
             return;
         }
-
         $this->toolsHelper->createAuditRecord($fieldName, $oldValue, $newValue, $objectId, 'ra_profiles');
     }
 
@@ -712,7 +727,10 @@ class LoadHelper {
             if (!array_key_exists($columnName, $columns)) {
                 continue;
             }
-
+            if ($columnName == 'lastName') {
+                $surname = strtolower($value);
+                $value = ucwords($surname);
+            }
             $quotedColumns[] = $this->db->quoteName($columnName);
             $quotedValues[] = $this->quoteValue($value);
         }
@@ -727,8 +745,9 @@ class LoadHelper {
                 ->values(implode(',', $quotedValues));
 
         $this->db->setQuery($query)->execute();
-
-        return $this->getProfileBySalesforceId($data['salesforceId']);
+        $profile = $this->getProfileBySalesforceId($data['salesforceId']);
+        $this->toolsHelper->createAuditRecord('Record', 'C', '', $profile->id, 'ra_profiles');
+        return $id;
     }
 
     private function syncRoles($profile, $member) {
@@ -773,9 +792,11 @@ class LoadHelper {
     private function syncMember($member) {
 
         $member = $this->normaliseMember($member);
+//        var_dump($member);
+//        die;
         $salesforceId = $this->normaliseScalar($member['salesforceId'] ?? null);
         if (JDEBUG) {
-            $this->messages[] = 'Syncing member with Salesforce ID: ' . $salesforceId;
+            $this->messages[] = 'Syncing member with Salesforce ID: ' . $salesforceId . ', member ' . $member['membershipNumber'];
         }
 
         if ($salesforceId === null) {
@@ -801,7 +822,7 @@ class LoadHelper {
             // Find the new profile record, to get the member_id for the audit record
             $profile = $this->getProfileBySalesforceId($salesforceId);
             $this->messages[] = 'Created new profile for Salesforce ID: ' . $salesforceId . ' with member_id ' . $profile->member_id;
-            $this->count_new++;
+            $this->count_new_profiles++;
             $this->createProfileAudit($this->getProfileReference($profile), 'C', '', null, '');
         } else {
             $changes = $this->updateProfile($profile, $data);
@@ -839,14 +860,26 @@ class LoadHelper {
             $this->messages[] = 'getJson was false for ' . $code;
             return false;
         }
+        // Find the Primary list for this Group
+        $this->primary_list = $this->getDefaultList($code);
+        if (!$this->primary_list) {
+            $message = 'Unable to find Primary list for ' . $code;
+            $this->logMessage($message, 1);
+            $this->messages[] = $message;
+            return;
+        }
+
         //       die('Load members for ' . $code . ', got ' . count($members) . ' records');
         $count = $this->processMembers($members);
         $this->updateOrganisationLastUpdated($code, $startedAt);
         $this->messages[] = $count . ' records processed for ' . $code;
         if ($count > 0) {
-            $this->messages[] = 'New records ' . $this->count_new . ', Updated records '
-                    . $this->count_updated . ', Not updated records ' . $this->count_not_updated
-                    . ', Watermark ' . $startedAt;
+            $message = 'New profile records ' . $this->count_new_profiles;
+            $message .= ', New user records ' . $this->count_new_users;
+            $message .= ', Updated records ' . $this->count_updated;
+            $message .= ', Not updated records ' . $this->count_not_updated;
+            $message .= ', Watermark ' . $startedAt;
+            $this->messages[] = $message;
         }
         return;
     }
@@ -884,14 +917,14 @@ class LoadHelper {
             $this->logMessage('No member data returned from feed', '3');
             return 0;
         }
-
         foreach ($members as $member) {
 //            if ($count == 0){
 //                var_dump($member);
 //                echo '<br>';
 //            }
+            $count++;
             if ($this->syncMember($member)) {
-                $count++;
+                //               $count++;
             }
         }
 

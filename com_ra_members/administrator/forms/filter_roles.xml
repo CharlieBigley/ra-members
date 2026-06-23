@@ -36,8 +36,8 @@
             <option value="a.role DESC">COM_RA_MEMBERS_ROLE_DESC</option>
             <option value="a.membershipNumber ASC">COM_RA_MEMBERS_MEMBERSHIP_NUMBER_ASC</option>
             <option value="a.membershipNumber DESC">COM_RA_MEMBERS_MEMBERSHIP_NUMBER_DESC</option>
-            <option value="a.home_group ASC">COM_RA_MEMBERS_HOME_GROUP_ASC</option>
-            <option value="a.home_group DESC">COM_RA_MEMBERS_HOME_GROUP_DESC</option>
+            <option value="p.home_group ASC">COM_RA_MEMBERS_HOME_GROUP_ASC</option>
+            <option value="p.home_group DESC">COM_RA_MEMBERS_HOME_GROUP_DESC</option>
 
         </field>
 

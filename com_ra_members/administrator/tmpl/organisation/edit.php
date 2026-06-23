@@ -1,14 +1,19 @@
 <?php
 defined('_JEXEC') or die;
 
+use Joomla\CMS\Factory;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Language\Text;
+use Ramblers\Component\Ra_tools\Site\Helpers\ToolsTable;
 
 $wa = $this->document->getWebAssetManager();
 $wa->useScript('keepalive')
-    ->useScript('form.validate');
+        ->useScript('form.validate');
 HTMLHelper::_('bootstrap.tooltip');
+// Import CSS
+$wa = Factory::getApplication()->getDocument()->getWebAssetManager();
+$wa->registerAndUseStyle('ramblers', 'com_ra_tools/ramblers.css');
 ?>
 
 <form
@@ -90,7 +95,39 @@ HTMLHelper::_('bootstrap.tooltip');
         </div>
     </div>
     <?php echo HTMLHelper::_('uitab.endTab'); ?>
+    <?php
+    echo HTMLHelper::_('uitab.addTab', 'myTab', 'roles', Text::_('Roles', true));
 
+    $target = 'administrator/index.php?option=com_ra_members&view=role&layout=edit&code=' . $this->item->code;
+    echo $this->toolsHelper->buildButton($target, 'Add Role');
+    $target_delete = 'administrator/index.php?option=com_ra_members&task=organisation.deleteRole&code=' . $this->item->code . '&id=';
+    $sql = 'SELECT r.id, r.*, p.preferred_name ';
+    $sql .= 'FROM #__ra_roles AS r ';
+    $sql .= 'LEFT JOIN #__ra_profiles AS p ON p.id=r.member_id ';
+    $sql .= 'WHERE r.organisation_code = ' . Factory::getContainer()->get('DatabaseDriver')->quote($this->item->code) . ' ';
+    $sql .= 'ORDER BY r.role ';
+    //   echo $sql . '<br>';
+    $rows = $this->toolsHelper->getRows($sql);
+    if ($rows) {
+        $table = new ToolsTable;
+        $table->add_header('Role,Member,Last updated,Action');
+        $rows = $this->toolsHelper->getRows($sql);
+
+        foreach ($rows as $row) {
+            $table->add_item($row->role);
+            $table->add_item($row->preferred_name);
+            $table->add_item(HTMLHelper::_('date', $row->last_updated, 'd M y'));
+            $link = $this->toolsHelper->buildButton($target_delete . $row->id, 'Delete Role', false, 'red');
+            $table->add_item($link);
+            $table->generate_line();
+        }
+        $table->generate_table();
+    } else {
+        echo 'No roles found<br>';
+    }
+
+    echo HTMLHelper::_('uitab.endTab');
+    ?>
     <?php echo HTMLHelper::_('uitab.addTab', 'myTab', 'publishing', Text::_('Publishing', true)); ?>
     <div class="row-fluid">
         <div class="col-md-12 form-horizontal">

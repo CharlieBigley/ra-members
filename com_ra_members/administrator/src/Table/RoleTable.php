@@ -1,6 +1,7 @@
 <?php
+
 /**
- * @version    CVS: 1.1.3
+ * @version    CVS: 1.0.0
  * @package    Com_Ra_members
  * @author     Charlie Bigley <charlie@bigley.me.uk>
  * @copyright  2026 Charlie Bigley
@@ -8,6 +9,7 @@
  */
 
 namespace Ramblers\Component\Ra_members\Administrator\Table;
+
 // No direct access
 defined('_JEXEC') or die;
 
@@ -23,20 +25,19 @@ use \Joomla\Database\DatabaseDriver;
 use \Joomla\CMS\Filter\OutputFilter;
 use \Joomla\CMS\Filesystem\File;
 use \Joomla\Registry\Registry;
-use \Ramblers\Component\Ra_members\Administrator\Helper\Ra_membersHelper;
 use \Joomla\CMS\Helper\ContentHelper;
-
+use Ramblers\Component\Ra_tools\Site\Helpers\ToolsHelper;
 
 /**
  * Role table
  *
- * @since 1.1.3
+ * @since 1.0.0
  */
-class RoleTable extends Table implements VersionableTableInterface, TaggableTableInterface
-{
-	use TaggableTableTrait;
+class RoleTable extends Table implements VersionableTableInterface, TaggableTableInterface {
 
-	/**
+    use TaggableTableTrait;
+
+    /**
      * Indicates that columns fully support the NULL value in the database
      *
      * @var    boolean
@@ -44,215 +45,208 @@ class RoleTable extends Table implements VersionableTableInterface, TaggableTabl
      */
     protected $_supportNullValue = true;
 
-	
-	/**
-	 * Constructor
-	 *
-	 * @param   JDatabase  &$db  A database connector object
-	 */
-	public function __construct(DatabaseDriver $db)
-	{
-		$this->typeAlias = 'com_ra_members.role';
-		parent::__construct('#__ra_roles', 'id', $db);
-		$this->setColumnAlias('published', 'state');
-		
-	}
+    /**
+     * Constructor
+     *
+     * @param   JDatabase  &$db  A database connector object
+     */
+    public function __construct(DatabaseDriver $db) {
+        $this->typeAlias = 'com_ra_members.role';
+        parent::__construct('#__ra_roles', 'id', $db);
+        $this->setColumnAlias('published', 'state');
+    }
 
-	/**
-	 * Get the type alias for the history table
-	 *
-	 * @return  string  The alias as described above
-	 *
-	 * @since   1.1.3
-	 */
-	public function getTypeAlias()
-	{
-		return $this->typeAlias;
-	}
+    /**
+     * Get the type alias for the history table
+     *
+     * @return  string  The alias as described above
+     *
+     * @since   1.0.0
+     */
+    public function getTypeAlias() {
+        return $this->typeAlias;
+    }
 
-	/**
-	 * Overloaded bind function to pre-process the params.
-	 *
-	 * @param   array  $array   Named array
-	 * @param   mixed  $ignore  Optional array or list of parameters to ignore
-	 *
-	 * @return  boolean  True on success.
-	 *
-	 * @see     Table:bind
-	 * @since   1.1.3
-	 * @throws  \InvalidArgumentException
-	 */
-	public function bind($array, $ignore = '')
-	{
-		$date = Factory::getDate();
-		$task = Factory::getApplication()->input->get('task');
-		$user = Factory::getApplication()->getIdentity();
-		
-
-		if (isset($array['params']) && is_array($array['params']))
-		{
-			$registry = new Registry;
-			$registry->loadArray($array['params']);
-			$array['params'] = (string) $registry;
-		}
-
-		if (isset($array['metadata']) && is_array($array['metadata']))
-		{
-			$registry = new Registry;
-			$registry->loadArray($array['metadata']);
-			$array['metadata'] = (string) $registry;
-		}
-
-		if (!$user->authorise('core.admin', 'com_ra_members.role.' . $array['id']))
-		{
-			$actions         = Access::getActionsFromFile(
-				JPATH_ADMINISTRATOR . '/components/com_ra_members/access.xml',
-				"/access/section[@name='role']/"
-			);
-			$default_actions = Access::getAssetRules('com_ra_members.role.' . $array['id'])->getData();
-			$array_jaccess   = array();
-
-			foreach ($actions as $action)
-			{
-				if (key_exists($action->name, $default_actions))
-				{
-					$array_jaccess[$action->name] = $default_actions[$action->name];
-				}
-			}
-
-			$array['rules'] = $this->JAccessRulestoArray($array_jaccess);
-		}
-
-		// Bind the rules for ACL where supported.
-		if (isset($array['rules']) && is_array($array['rules']))
-		{
-			$this->setRules($array['rules']);
-		}
-
-		return parent::bind($array, $ignore);
-	}
-
-	/**
-	 * Method to store a row in the database from the Table instance properties.
-	 *
-	 * If a primary key value is set the row with that primary key value will be updated with the instance property values.
-	 * If no primary key value is set a new row will be inserted into the database with the properties from the Table instance.
-	 *
-	 * @param   boolean  $updateNulls  True to update fields even if they are null.
-	 *
-	 * @return  boolean  True on success.
-	 *
-	 * @since   1.1.3
-	 */
-	public function store($updateNulls = true)
-	{
+    /**
+     * Overloaded bind function to pre-process the params.
+     *
+     * @param   array  $array   Named array
+     * @param   mixed  $ignore  Optional array or list of parameters to ignore
+     *
+     * @return  boolean  True on success.
+     *
+     * @see     Table:bind
+     * @since   1.0.0
+     * @throws  \InvalidArgumentException
+     */
+    public function bind($array, $ignore = '') {
+        $date = Factory::getDate();
+        $task = Factory::getApplication()->input->get('task');
         $user = Factory::getApplication()->getIdentity();
-        $date = Factory::getDate('now', Factory::getConfig()->get('offset'))->toSql(true);
-        if ($this->id == 0) {
-            $this->created = $date;
-            $this->created_by = $user->id;
+
+        if ($array['id'] == 0) {
+            $array['created'] = Factory::getDate('now', Factory::getConfig()->get('offset'))->toSql(true);
+            $array['created_by'] = $user->id;
+        }
+
+        // Ensure group code is upper case
+        $array['organisation_code'] = strtoupper($array['organisation_code']);
+
+        // Support for multiple field: role
+        if (isset($array['role'])) {
+            if (is_array($array['role'])) {
+                $array['role'] = implode(',', $array['role']);
+            } elseif (strpos($array['role'], ',') != false) {
+                $array['role'] = explode(',', $array['role']);
+            } elseif (strlen($array['role']) == 0) {
+                $array['role'] = '';
+            }
         } else {
-            $this->modified_by = $user->id;
-            $this->modified = $date;
-        }		
-		
-		return parent::store($updateNulls);
-	}
+            $array['role'] = '';
+        }
 
-	/**
-	 * This function convert an array of Access objects into an rules array.
-	 *
-	 * @param   array  $jaccessrules  An array of Access objects.
-	 *
-	 * @return  array
-	 */
-	private function JAccessRulestoArray($jaccessrules)
-	{
-		$rules = array();
+        if (isset($array['params']) && is_array($array['params'])) {
+            $registry = new Registry;
+            $registry->loadArray($array['params']);
+            $array['params'] = (string) $registry;
+        }
 
-		foreach ($jaccessrules as $action => $jaccess)
-		{
-			$actions = array();
+        if (isset($array['metadata']) && is_array($array['metadata'])) {
+            $registry = new Registry;
+            $registry->loadArray($array['metadata']);
+            $array['metadata'] = (string) $registry;
+        }
 
-			if ($jaccess)
-			{
-				foreach ($jaccess->getData() as $group => $allow)
-				{
-					$actions[$group] = ((bool)$allow);
-				}
-			}
+        if (!$user->authorise('core.admin', 'com_ra_members.role.' . $array['id'])) {
+            $actions = Access::getActionsFromFile(
+                            JPATH_ADMINISTRATOR . '/components/com_ra_members/access.xml',
+                            "/access/section[@name='role']/"
+            );
+            $default_actions = Access::getAssetRules('com_ra_members.role.' . $array['id'])->getData();
+            $array_jaccess = array();
 
-			$rules[$action] = $actions;
-		}
+            foreach ($actions as $action) {
+                if (key_exists($action->name, $default_actions)) {
+                    $array_jaccess[$action->name] = $default_actions[$action->name];
+                }
+            }
 
-		return $rules;
-	}
+            $array['rules'] = $this->JAccessRulestoArray($array_jaccess);
+        }
 
-	/**
-	 * Overloaded check function
-	 *
-	 * @return bool
-	 */
-	public function check()
-	{
-		// If there is an ordering column and this is a new row then get the next ordering value
-		if (property_exists($this, 'ordering') && $this->id == 0)
-		{
-			$this->ordering = self::getNextOrder();
-		}
-		
-		
+        // Bind the rules for ACL where supported.
+        if (isset($array['rules']) && is_array($array['rules'])) {
+            $this->setRules($array['rules']);
+        }
 
-		return parent::check();
-	}
+        return parent::bind($array, $ignore);
+    }
 
-	/**
-	 * Define a namespaced asset name for inclusion in the #__assets table
-	 *
-	 * @return string The asset name
-	 *
-	 * @see Table::_getAssetName
-	 */
-	protected function _getAssetName()
-	{
-		$k = $this->_tbl_key;
+    /**
+     * Method to store a row in the database from the Table instance properties.
+     *
+     * If a primary key value is set the row with that primary key value will be updated with the instance property values.
+     * If no primary key value is set a new row will be inserted into the database with the properties from the Table instance.
+     *
+     * @param   boolean  $updateNulls  True to update fields even if they are null.
+     *
+     * @return  boolean  True on success.
+     *
+     * @since   1.0.0
+     */
+    public function store($updateNulls = true) {
+        if ($this->id > 0) {
+            $this->modified_by = Factory::getApplication()->getSession()->get('user')->id;
+            $this->modified = Factory::getDate('now', Factory::getConfig()->get('offset'))->toSql(true);
+        }
 
-		return $this->typeAlias . '.' . (int) $this->$k;
-	}
+        return parent::store($updateNulls);
+    }
 
-	/**
-	 * Returns the parent asset's id. If you have a tree structure, retrieve the parent's id using the external key field
-	 *
-	 * @param   Table   $table  Table name
-	 * @param   integer  $id     Id
-	 *
-	 * @see Table::_getAssetParentId
-	 *
-	 * @return mixed The id on success, false on failure.
-	 */
-	protected function _getAssetParentId($table = null, $id = null)
-	{
-		// We will retrieve the parent-asset from the Asset-table
-		$assetParent = Table::getInstance('Asset');
+    /**
+     * This function convert an array of Access objects into an rules array.
+     *
+     * @param   array  $jaccessrules  An array of Access objects.
+     *
+     * @return  array
+     */
+    private function JAccessRulestoArray($jaccessrules) {
+        $rules = array();
 
-		// Default: if no asset-parent can be found we take the global asset
-		$assetParentId = $assetParent->getRootId();
+        foreach ($jaccessrules as $action => $jaccess) {
+            $actions = array();
 
-		// The item has the component as asset-parent
-		$assetParent->loadByName('com_ra_members');
+            if ($jaccess) {
+                foreach ($jaccess->getData() as $group => $allow) {
+                    $actions[$group] = ((bool) $allow);
+                }
+            }
 
-		// Return the found asset-parent-id
-		if ($assetParent->id)
-		{
-			$assetParentId = $assetParent->id;
-		}
+            $rules[$action] = $actions;
+        }
 
-		return $assetParentId;
-	}
+        return $rules;
+    }
 
-	//XXX_CUSTOM_TABLE_FUNCTION
+    /**
+     * Overloaded check function
+     *
+     * @return bool
+     */
+    public function check() {
+        // If there is an ordering column and this is a new row then get the next ordering value
+        if (property_exists($this, 'ordering') && $this->id == 0) {
+            $this->ordering = self::getNextOrder();
+        }
 
-	
+
+
+        return parent::check();
+    }
+
+    /**
+     * Define a namespaced asset name for inclusion in the #__assets table
+     *
+     * @return string The asset name
+     *
+     * @see Table::_getAssetName
+     */
+    protected function _getAssetName() {
+        $k = $this->_tbl_key;
+
+        return $this->typeAlias . '.' . (int) $this->$k;
+    }
+
+    /**
+     * Returns the parent asset's id. If you have a tree structure, retrieve the parent's id using the external key field
+     *
+     * @param   Table   $table  Table name
+     * @param   integer  $id     Id
+     *
+     * @see Table::_getAssetParentId
+     *
+     * @return mixed The id on success, false on failure.
+     */
+    protected function _getAssetParentId($table = null, $id = null) {
+        // We will retrieve the parent-asset from the Asset-table
+        $assetParent = Table::getInstance('Asset');
+
+        // Default: if no asset-parent can be found we take the global asset
+        $assetParentId = $assetParent->getRootId();
+
+        // The item has the component as asset-parent
+        $assetParent->loadByName('com_ra_members');
+
+        // Return the found asset-parent-id
+        if ($assetParent->id) {
+            $assetParentId = $assetParent->id;
+        }
+
+        return $assetParentId;
+    }
+
+    //XXX_CUSTOM_TABLE_FUNCTION
+
     /**
      * Delete a record by id
      *
@@ -260,11 +254,18 @@ class RoleTable extends Table implements VersionableTableInterface, TaggableTabl
      *
      * @return bool
      */
-    public function delete($pk = null)
-    {
+    public function delete($pk = null) {
         $this->load($pk);
+        $this->deleteLinkedRecords($pk);
         $result = parent::delete($pk);
-        
+
         return $result;
     }
+
+    private function deleteLinkedRecords($id) {
+        // Update membership of UserGroups as required
+        $toolsHelper = new ToolsHelper;
+        Factory::getApplication()->enqueueMessage("Deleting linked records for " . $this->role, 'info');
+    }
+
 }

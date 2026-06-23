@@ -2,16 +2,42 @@
 <form addfieldprefix="Ramblers\Component\Ra_members\Administrator\Field">
   <fieldset>
     <field name="id" type="text" readonly="true" class="readonly" default="0" description="JGLOBAL_FIELD_ID_DESC"/>
-    <field name="checked_out" type="hidden" filter="unset"/>
-    <field name="checked_out_time" type="hidden" filter="unset"/>
     <field name="created_by" type="createdby" default="0" label="JGLOBAL_FIELD_CREATED_BY_LABEL" description="JGLOBAL_FIELD_CREATED_BY_DESC" hidden="true" hint="COM_RA_MEMBERS_FORM_LBL_ROLE_CREATED_BY"/>
     <field name="modified_by" type="modifiedby" default="0" label="JGLOBAL_FIELD_MODIFIED_BY_LABEL" description="JGLOBAL_FIELD_MODIFIED_BY_DESC" hidden="true" hint="COM_RA_MEMBERS_FORM_LBL_ROLE_MODIFIED_BY"/>
     <field name="created" class="inputbox" format="%Y-%m-%d" timeformat="12" filter="user_utc" translateformat="false" showtime="false" singleheader="false" todaybutton="false" weeknumbers="false" filltable="false" type="calendar" readonly="true" label="COM_RA_MEMBERS_FORM_LBL_ROLE_CREATED" description="COM_RA_MEMBERS_FORM_DESC_ROLE_CREATED" hidden="true" hint="COM_RA_MEMBERS_FORM_LBL_ROLE_CREATED"/>
     <field name="modified" class="inputbox" format="%Y-%m-%d" timeformat="12" filter="user_utc" translateformat="false" showtime="false" singleheader="false" todaybutton="false" weeknumbers="false" filltable="false" type="calendar" readonly="true" label="COM_RA_MEMBERS_FORM_LBL_ROLE_MODIFIED" description="COM_RA_MEMBERS_FORM_DESC_ROLE_MODIFIED" hidden="true" hint="COM_RA_MEMBERS_FORM_LBL_ROLE_MODIFIED"/>
-    <field name="preferred_name" maxlength="100" filter="word" type="text" required="true" label="COM_RA_MEMBERS_FORM_LBL_ROLE_PREFERRED_NAME" description="COM_RA_MEMBERS_FORM_DESC_ROLE_PREFERRED_NAME" hint="COM_RA_MEMBERS_FORM_LBL_ROLE_PREFERRED_NAME"/>
-    <field name="role" filter="safehtml" type="text" label="COM_RA_MEMBERS_FORM_LBL_ROLE_ROLE" description="COM_RA_MEMBERS_FORM_DESC_ROLE_ROLE" hint="COM_RA_MEMBERS_FORM_LBL_ROLE_ROLE"/>
-    <field name="membership_number" filter="int" type="text" required="true" label="COM_RA_MEMBERS_FORM_LBL_ROLE_MEMBERSHIP_NUMBER" description="COM_RA_MEMBERS_FORM_DESC_ROLE_MEMBERSHIP_NUMBER" hint="COM_RA_MEMBERS_FORM_LBL_ROLE_MEMBERSHIP_NUMBER"/>
-    <field name="home_group" maxlength="4" filter="alnum" type="text" required="true" label="COM_RA_MEMBERS_FORM_LBL_ROLE_HOME_GROUP" description="COM_RA_MEMBERS_FORM_DESC_ROLE_HOME_GROUP" hint="COM_RA_MEMBERS_FORM_LBL_ROLE_HOME_GROUP"/>
+    <field name="organisation_code" 
+           maxlength="100" 
+           filter="alnum" 
+           type="text" required="true" 
+           label="Code" 
+           description="Group or Area code"/>
+        <field name="group_name" 
+            type="text" 
+            label="Group" 
+            readonly="true" 
+        /> 
+    <field name="member_id" 
+        filter="int" 
+        type="text" 
+        required="true" 
+        label="Member ID" 
+        description="Membership identifier" 
+    />
+    <field name="member_name" 
+        type="text" 
+        label="Member Name" 
+        readonly="true" 
+    />
+    <field name="role" 
+        type="list" 
+        required="true" 
+        label="Role" 
+        description="Role the member holds" >
+          <option value="walkLeader">Walk leader</option>
+          <option value="chair">Chair</option>
+          <option value="viewmembershipData">Membership Secretary</option>
+    </field>
     <field name="version_note" type="text" label="JGLOBAL_FIELD_VERSION_NOTE_LABEL" description="JGLOBAL_FIELD_VERSION_NOTE_DESC" class="inputbox" size="45" labelclass="control-label"/>
   </fieldset>
 </form>

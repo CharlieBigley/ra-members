@@ -1,7 +1,7 @@
 <?php
 /**
  * @version    CVS: 1.0.3
- * @package    Com_Ra_members
+ * @package    com_ra_members
  * @author     Charlie Bigley <charlie@bigley.me.uk>
  * @copyright  2026 Charlie Bigley
  * @license    GNU General Public License version 2 or later; see LICENSE.txt
