@@ -310,7 +310,7 @@ class SystemController extends FormController {
 
     public function UpdateMembership() {
         //       $id = $this->objApp->input->getInt('id', '0');
-        ToolBarHelper::title($this->prefix . 'UpdateNumbership');
+        ToolBarHelper::title($this->prefix . 'UpdateMembership');
         if (!$this->toolsHelper->isSuperuser()) {
             echo 'Invalid access<br>';
         } else {

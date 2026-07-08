@@ -30,14 +30,17 @@
             class="js-select-submit-on-change"
         />
         <field
-            name="mailman_active"
+            name="usage_filter"
             type="list"
-            label="Mailman"
+            label="Usage"
             default=""
             class="js-select-submit-on-change"
         >
             <option value="">- All records -</option>
-            <option value="1">Mailman active only</option>
+            <option value="mailman_active">Mailman active</option>
+            <option value="uses_ra_tools">Uses RA Tools</option>
+            <option value="uses_ra_mailman">Uses RA Mailman</option>
+            <option value="uses_ngx">Uses NGX</option>
         </field>
     </fields>
 

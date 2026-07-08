@@ -8,7 +8,9 @@
  * @license    GNU General Public License version 2 or later; see LICENSE.txt
  * 19/05/26 CB jointMembers
  * 05/06/26 CB show group code unless scope is G, use scope for Analysis of members by group
- * 22/06/26 CB new reports for Volunteers, Affilites
+ * 22/06/26 CB new reports for Volunteers, Affiliates
+ * 26/06/26 CB recentUpdates
+ * 29/06/26 CB lapsedMembers / ramblersJoinedDate
  */
 
 namespace Ramblers\Component\Ra_members\Administrator\Controller;
@@ -445,6 +447,7 @@ class ReportsController extends AdminController {
             'p.membershipNumber',
             'p.preferred_name',
             'COUNT(r.id) AS role_count',
+            'p.ramblersJoinedDate',
             'p.groupJoinedDate',
             'DATEDIFF(CURDATE(), p.membershipExpiryDate) AS days_lapsed',
             'u.email',
@@ -462,6 +465,7 @@ class ReportsController extends AdminController {
         $headers[] = 'Preferred name';
         $headers[] = 'Email';
         $headers[] = 'Roles';
+        $headers[] = 'Ramblers joined';
         $headers[] = 'Group joined';
         $headers[] = 'Days since lapse';
 
@@ -496,6 +500,7 @@ class ReportsController extends AdminController {
                 $table->add_item($row->preferred_name);
                 $table->add_item($row->email);
                 $table->add_item((int) $row->role_count);
+                $table->add_item($row->ramblersJoinedDate ? HTMLHelper::_('date', $row->groupJoinedDate, 'd M y') : '');
                 $table->add_item($row->groupJoinedDate ? HTMLHelper::_('date', $row->groupJoinedDate, 'd M y') : '');
                 $table->add_item((int) $row->days_lapsed);
                 $table->generate_line();
@@ -682,9 +687,9 @@ class ReportsController extends AdminController {
         echo $this->toolsHelper->backButton($this->back);
     }
 
-    public function recentJoiners() {
+    public function recentJoiners($csv = "N") {
         $count = 30;
-        ToolBarHelper::title($count . ' most recent Members to have joined');
+        ToolBarHelper::title($count . ' most recent Members to have joined the Group');
         echo $this->breadcrumbs;
         echo '<h4>Scope ' . $this->subheading . '</h4>';
         $table = new ToolsTable();
@@ -737,12 +742,11 @@ class ReportsController extends AdminController {
         $headers .= 'Name,Member No,Field,Term,Lapse date,Days ago';
         $table->add_header($headers);
         $sql = 'SELECT p.groupJoinedDate, p.home_group, p.membershipNumber, p.preferred_name, ';
-        $sql .= 'a.date_amended,  ';
-        $sql .= 'DATEDIFF(CURRENT_DATE,a.date_amended) AS days_ago ';
+        $sql .= 'a.created,  ';
+        $sql .= 'DATEDIFF(CURRENT_DATE,a.created) AS days_ago ';
         $sql .= 'FROM `#__ra_profiles_audit` AS a ';
         $sql .= 'INNER JOIN `#__ra_profiles` AS p  ON p.id = a.object_id ';
-        $sql .= 'ORDER BY a.date_amended DESC ';
-        $sql .= 'LIMIT ' . $count;
+        $sql .= 'ORDER BY a.created';
 //       echo $sql;
         $rows = $this->toolsHelper->getRows($sql);
         foreach ($rows as $row) {

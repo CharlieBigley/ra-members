@@ -53,9 +53,21 @@ class OrganisationTable extends Table implements VersionableTableInterface, Tagg
             $array['nation_id'] = 0;
         }
 
-
+        if (isset($array['last_updated']) && $array['last_updated'] === '') {
+            $array['last_updated'] = NULL;
+        }
         if (isset($array['cluster'])) {
             $array['cluster'] = strtoupper(trim((string) $array['cluster']));
+        }
+
+        if (empty($array['uses_ra_tools'])) {
+            $array['uses_ra_tools'] = null;
+        }
+        if (empty($array['uses_ra_mailman'])) {
+            $array['uses_ra_mailman'] = null;
+        }
+        if (empty($array['uses_ngx'])) {
+            $array['uses_ngx'] = null;
         }
 
         if (!empty($array['logo'])) {

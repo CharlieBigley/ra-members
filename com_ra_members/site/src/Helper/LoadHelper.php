@@ -157,9 +157,10 @@ class LoadHelper {
             $this->messages[] = 'Error looking up Joomla user for email ' . $email . ': ' . $this->toolsHelper->error;
             return false;
         }
-        //   var_dump($existing_user);
-        //   echo '<br>';
-        //   return;
+//        var_dump($existing_user);
+//        echo '<br>';
+//        die;
+//   return;
         if (is_null($profile_id) || $profile_id == 0) {
             if (is_object($existing_user) && !empty($existing_user->id)) {
                 $user_id = $existing_user->id;

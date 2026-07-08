@@ -24,6 +24,36 @@
             <option value="1">JYES</option>
             <option value="0">JNO</option>
     </field>
+    <field name="uses_ra_tools"
+        type="radio"
+        label="Uses RA Tools"
+        description="Whether this Area/Group uses the RA Tools component."
+        class="btn-group btn-group-yesno"
+        default="0"
+        >
+            <option value="1">JYES</option>
+            <option value="">JNO</option>
+    </field>
+    <field name="uses_ra_mailman"
+        type="radio"
+        label="Uses RA Mailman"
+        description="Whether this Area/Group uses the RA Mailman component."
+        class="btn-group btn-group-yesno"
+        default="0"
+        >
+            <option value="1">JYES</option>
+            <option value="">JNO</option>
+    </field>
+    <field name="uses_ngx"
+        type="radio"
+        label="Uses NGX"
+        description="Whether this Area/Group uses the NGX toolset."
+        class="btn-group btn-group-yesno"
+        default="0"
+        >
+            <option value="1">JYES</option>
+            <option value="">JNO</option>
+    </field>
   </fieldset>
       <fieldset name="emailheader" label="Email header">
         <field name="email_header" 
@@ -75,6 +105,14 @@
             description="Background colour of the email footer"
         />
     </fieldset>
+    <fieldset name="notes" label="Notes">
+        <field
+            name="notes"
+            type="editor"
+            label="Notes"
+             description="Notes about this Area. These are not visible to members."
+        />
+      </fieldset>
     <fieldset name="welcome_letter" label="Welcome Letter">
         <field
             name="welcome_letter"

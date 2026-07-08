@@ -31,7 +31,7 @@ $wa->registerAndUseStyle('ramblers', 'com_ra_tools/ramblers.css');
                 echo $this->form->renderField('code');
                 echo $this->form->renderField('name');
                 echo $this->form->renderField('details');
-                echo $this->form->renderField('mailman_active');
+                
                 echo $this->form->renderField('website');
                 echo $this->form->renderField('co_url');
 
@@ -41,13 +41,21 @@ $wa->registerAndUseStyle('ramblers', 'com_ra_tools/ramblers.css');
 
                 echo $this->form->renderField('latitude');
                 echo $this->form->renderField('longitude');
+                echo $this->form->renderField('mailman_active');
+                echo $this->form->renderField('uses_ra_tools');
+                echo $this->form->renderField('uses_ra_mailman');
+                echo $this->form->renderField('uses_ngx');
                 ?>
             </fieldset>
         </div>
     </div>
-    <?php echo HTMLHelper::_('uitab.endTab'); ?>
-
-    <?php echo HTMLHelper::_('uitab.addTab', 'myTab', 'email_header', Text::_('Email Header', true)); ?>
+    <?php 
+    echo HTMLHelper::_('uitab.endTab'); 
+    echo HTMLHelper::_('uitab.addTab', 'myTab', 'notes', Text::_('Notes', true)); 
+    echo $this->form->renderField('notes');
+    echo HTMLHelper::_('uitab.endTab'); 
+    echo HTMLHelper::_('uitab.addTab', 'myTab', 'email_header', Text::_('Email Header', true)); 
+    ?>
     <div class="row-fluid">
         <div class="col-md-12 form-horizontal">
             <fieldset class="adminform">

@@ -31,7 +31,7 @@ class OrganisationsModel extends ListModel
                 'a.co_url',
                 'record_type',
                 'cluster',
-                'mailman_active',
+                'usage_filter',
             ];
 
             $this->search_fields = [
@@ -64,7 +64,7 @@ class OrganisationsModel extends ListModel
         $search = $this->getState('filter.search');
         $recordType = $this->getState('filter.record_type');
         $cluster = $this->getState('filter.cluster');
-        $mailmanActive = $this->getState('filter.mailman_active');
+        $usageFilter = $this->getState('filter.usage_filter');
 
         if (!empty($recordType)) {
             $query->where('a.record_type = ' . $db->quote($recordType));
@@ -74,8 +74,8 @@ class OrganisationsModel extends ListModel
             $query->where('a.cluster = ' . $db->quote($cluster));
         }
 
-        if (!empty($mailmanActive)) {
-            $query->where('a.mailman_active = ' . $db->quote($mailmanActive));
+        if (!empty($usageFilter)) {
+            $query->where('a.' . $usageFilter . ' = 1');
         }
 
         if (!empty($search)) {

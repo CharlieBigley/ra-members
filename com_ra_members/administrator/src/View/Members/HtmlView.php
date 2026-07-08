@@ -13,14 +13,14 @@ namespace Ramblers\Component\Ra_members\Administrator\View\Members;
 // No direct access
 defined('_JEXEC') or die;
 
+use \Joomla\CMS\Form\Form;
+use \Joomla\CMS\HTML\Helpers\Sidebar;
+use \Joomla\CMS\Language\Text;
 use \Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
 use \Joomla\CMS\Toolbar\Toolbar;
 use \Joomla\CMS\Toolbar\ToolbarHelper;
-use \Joomla\CMS\Language\Text;
-use \Joomla\Component\Content\Administrator\Extension\ContentComponent;
-use \Joomla\CMS\Form\Form;
-use \Joomla\CMS\HTML\Helpers\Sidebar;
 use \Joomla\CMS\User\CurrentUserInterface;
+use \Joomla\Component\Content\Administrator\Extension\ContentComponent;
 use Ramblers\Component\Ra_mailman\Site\Helpers\Mailhelper;
 use Ramblers\Component\Ra_tools\Site\Helpers\ToolsHelper;
 

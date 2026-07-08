@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<form>
+    <fields name="filter">
+        <field name="search" type="text" description="COM_RA_TOOLS_SEARCH_FILTER_SUBMIT"
+               label="COM_USERS_FILTER_SEARCH_DESC"
+               class="js-stools-search-string" />
+
+        <field name="state"
+               type="status"
+               label="COM_RA_TOOLS_FILTER_STATE"
+               description="COM_RA_TOOLS_FILTER_STATE_DESC"
+               onchange="this.form.submit();"
+        >
+            <option value="">JOPTION_SELECT_PUBLISHED</option>
+        </field>
+
+        
+
+    </fields>
+
+    <fields name="list">
+
+        <field name="fullordering"
+               type="list"
+               label="COM_RA_TOOLS_LIST_FULL_ORDERING"
+               description="COM_RA_TOOLS_LIST_FULL_ORDERING_DESC"
+               onchange="this.form.submit();"
+               default="a.id DESC"
+        >
+            <option value="">JGLOBAL_SORT_BY</option>
+            <option value="a.name ASC">Real name ASC</option>
+            <option value="a.name DESC">Real name DESC</option>
+            <option value="a.email ASC">Email ASC</option>
+            <option value="a.email DESC">Email DESC</option>
+            <option value="a.blocked ASC">Blocked ASC</option>
+            <option value="a.blocked DESC">Blocked DESC</option>
+            <option value="preferred_name ASC">Preferred name ASC</option>
+            <option value="preferred_name DESC">Preferred name DESC</option>
+            <option value="a.id ASC">COM_RA_TOOLS_ID_ASC</option>
+            <option value="a.id DESC">COM_RA_TOOLS_ID_DESC</option>
+            
+        </field>
+
+       <field name="limit"
+               type="limitbox"
+               label="COM_RA_TOOLS_LIST_LIMIT"
+               description="COM_RA_TOOLS_LIST_LIMIT_DESC"
+               class="input-mini"
+               default="25"
+               onchange="this.form.submit();"
+        />
+
+    </fields>
+
+</form>

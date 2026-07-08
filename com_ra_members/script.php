@@ -7,6 +7,7 @@
  * 31/07/25 CB this->version_required
  * 09/08/25 CB ra_mail_lists / emails_outstanding
  * 06/04/26 CB add mail_list/description
+ * 08/07/26 CB new fields for organisations
  */
 
 \defined('_JEXEC') or die;
@@ -455,6 +456,13 @@ class Com_Ra_membersInstallerScript {
         }
         if (version_compare($this->current_version, '1.1.7', 'le')) {
             $this->checkColumn('ra_profiles', 'welcome_sent_date', 'A', 'DATE DEFAULT NULL AFTER affiliateMemberPrimaryGroup; ');
+        }
+        if (version_compare($this->current_version, '1.2', 'le')) {
+            $this->checkColumn('ra_profiles', 'title', 'U', 'VARCHAR(10) DEFAULT ""; ');
+            $this->checkColumn('ra_organisations', 'notes', 'A', 'MEDIUMTEXT CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NULL AFTER details; ');
+            $this->checkColumn('ra_organisations', 'uses_ra_tools', 'A', 'CHAR(1) NULL DEFAULT NULL AFTER mailman_active; ');
+            $this->checkColumn('ra_organisations', 'uses_ra_mailman', 'A', 'CHAR(1) NULL DEFAULT NULL AFTER uses_ra_tools; ');
+            $this->checkColumn('ra_organisations', 'uses_ngx', 'A', 'CHAR(1) NULL DEFAULT NULL AFTER uses_ra_mailman; ');
         }
         return true;
     }
