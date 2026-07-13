@@ -25,6 +25,7 @@ use Ramblers\Component\Ra_mailman\Site\Helpers\Mailhelper;
 use Ramblers\Component\Ra_mailman\Site\Helpers\UserHelper;
 use Ramblers\Component\Ra_tools\Site\Helpers\ToolsHelper;
 use Ramblers\Component\Ra_tools\Site\Helpers\JsonHelper;
+use Ramblers\Component\Ra_members\Administrator\Table\MemberTable;
 
 class LoadHelper {
 
@@ -709,46 +710,13 @@ class LoadHelper {
     }
 
     private function insertProfile($data) {
-        $columns = $this->getProfileColumns();
-        $now = Factory::getDate('now', Factory::getConfig()->get('offset'))->toSql(true);
-        $userId = $this->getCurrentUserId();
-
-        if (array_key_exists('created', $columns) && !array_key_exists('created', $data)) {
-            $data['created'] = $now;
-        }
-
-        if (array_key_exists('created_by', $columns) && !array_key_exists('created_by', $data)) {
-            $data['created_by'] = $userId;
-        }
-
-        $quotedColumns = array();
-        $quotedValues = array();
-
-        foreach ($data as $columnName => $value) {
-            if (!array_key_exists($columnName, $columns)) {
-                continue;
-            }
-            if ($columnName == 'lastName') {
-                $surname = strtolower($value);
-                $value = ucwords($surname);
-            }
-            $quotedColumns[] = $this->db->quoteName($columnName);
-            $quotedValues[] = $this->quoteValue($value);
-        }
-
-        if (empty($quotedColumns)) {
+        $profile = new MemberTable($this->db);
+        if (!$profile->save($data)) {
+            $this->messages[] = 'Error creating profile: ' . $profile->getError();
             return null;
         }
-
-        $query = $this->db->getQuery(true)
-                ->insert($this->db->quoteName('#__ra_profiles'))
-                ->columns($quotedColumns)
-                ->values(implode(',', $quotedValues));
-
-        $this->db->setQuery($query)->execute();
-        $profile = $this->getProfileBySalesforceId($data['salesforceId']);
         $this->toolsHelper->createAuditRecord('Record', 'C', '', $profile->id, 'ra_profiles');
-        return $id;
+        return $profile;
     }
 
     private function syncRoles($profile, $member) {
@@ -820,12 +788,11 @@ class LoadHelper {
                 $this->logMessage('Failed to create profile for ' . $salesforceId, '3');
                 return false;
             }
-            // Find the new profile record, to get the member_id for the audit record
-            $profile = $this->getProfileBySalesforceId($salesforceId);
             $this->messages[] = 'Created new profile for Salesforce ID: ' . $salesforceId . ' with member_id ' . $profile->member_id;
             $this->count_new_profiles++;
             $this->createProfileAudit($this->getProfileReference($profile), 'C', '', null, '');
         } else {
+            $profile->load(['salesforceId' => $salesforceId]);
             $changes = $this->updateProfile($profile, $data);
 
             if (empty($changes)) {
@@ -943,7 +910,6 @@ class LoadHelper {
 
     private function updateProfile($profile, $data) {
         $changes = array();
-        $sets = array();
         $columns = $this->getProfileColumns();
 
         foreach ($data as $columnName => $newValue) {
@@ -954,7 +920,6 @@ class LoadHelper {
                     'old' => $oldValue,
                     'new' => $newValue,
                 );
-                $sets[] = $this->db->quoteName($columnName) . ' = ' . $this->quoteValue($newValue);
             }
         }
 
@@ -962,23 +927,7 @@ class LoadHelper {
             return $changes;
         }
 
-        $userId = $this->getCurrentUserId();
-        $now = Factory::getDate('now', Factory::getConfig()->get('offset'))->toSql(true);
-
-        if (array_key_exists('modified', $columns)) {
-            $sets[] = $this->db->quoteName('modified') . ' = ' . $this->db->quote($now);
-        }
-
-        if (array_key_exists('modified_by', $columns)) {
-            $sets[] = $this->db->quoteName('modified_by') . ' = ' . (int) $userId;
-        }
-
-        $query = $this->db->getQuery(true)
-                ->update($this->db->quoteName('#__ra_profiles'))
-                ->set($sets)
-                ->where($this->db->quoteName('salesforceId') . ' = ' . $this->db->quote($profile->salesforceId));
-
-        $this->db->setQuery($query)->execute();
+        $profile->save($data);
 
         return $changes;
     }

@@ -424,7 +424,7 @@ class Com_Ra_membersInstallerScript {
             echo 'Can only be installed if com_ra_mailman is already present';
             return false;
         }
-        $tools_required = '3.7.1';
+        $tools_required = '3.7.4';
         $tools_version = $this->getVersion('com_ra_tools');
         echo '<p>Version ' . $tools_required . ' of com_ra_tools required<br>';
         if (version_compare($tools_version, $tools_required, 'ge')) {

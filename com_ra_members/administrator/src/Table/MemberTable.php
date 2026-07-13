@@ -1,11 +1,12 @@
 <?php
 
 /**
- * @version    1.0.1
+ * @version    1.1.8
  * @package    com_ra_members
  * @author     Charlie Bigley <charlie@bigley.me.uk>
  * @copyright  2026 Charlie Bigley
  * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ * 09/07/26 CB truncate affiliateMemberPrimaryGroup
  */
 
 namespace Ramblers\Component\Ra_members\Administrator\Table;
@@ -135,6 +136,25 @@ class MemberTable extends Table implements VersionableTableInterface, TaggableTa
             $array['membershipexpirydate'] = NULL;
             $this->membershipexpirydate = NULL;
         }
+        // ensure group codes are uppercase
+        if (isset($array['home_group'])) {
+            $array['home_group'] = strtoupper(trim((string) $array['home_group']));
+        }
+        if (isset($array['groupCode'])) {
+            $array['group_code'] = strtoupper(trim((string) $array['groupCode']));
+        }
+        // Ensure names are in sentance case
+        if (isset($array['firstName'])) {
+            $array['first_name'] = OutputFilter::stringSentences(trim((string) $array['firstName']));
+        }
+        if (isset($array['lastName'])) {
+            $array['last_name'] = OutputFilter::stringSentences(trim((string) $array['lastName']));
+        }   
+        // Truncate affiliate group, keep just the 4 character code
+        if (isset($array['affiliateMemberPrimaryGroup'])) {
+            $array['affiliateMemberPrimaryGroup'] = strtoupper(substr(trim((string) $array['affiliateMemberPrimaryGroup']), 0, 4));
+        }
+
 
         if (isset($array['params']) && is_array($array['params'])) {
             $registry = new Registry;

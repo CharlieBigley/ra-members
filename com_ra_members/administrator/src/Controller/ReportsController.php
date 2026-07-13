@@ -1,7 +1,7 @@
 <?php
 
 /**
- * @version    1.1.7
+ * @version    1.1.8
  * @package    com_ra_members
  * @author     Charlie Bigley <charlie@bigley.me.uk>
  * @copyright  2026 Charlie Bigley
@@ -11,6 +11,7 @@
  * 22/06/26 CB new reports for Volunteers, Affiliates
  * 26/06/26 CB recentUpdates
  * 29/06/26 CB lapsedMembers / ramblersJoinedDate
+ * 09/07/CB csv downloads
  */
 
 namespace Ramblers\Component\Ra_members\Administrator\Controller;
@@ -347,6 +348,7 @@ class ReportsController extends AdminController {
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="members_' . date('Y-m-d') . '.csv"');
         echo $csvData;
+        Factory::getApplication()->close();
     }
 
     public function generalReport() {
@@ -438,9 +440,13 @@ class ReportsController extends AdminController {
     public function lapsedMembers() {
 // Show members whose expiry date has passed or is today within the current scope,
 // including a count of matching role rows for each member.
-        ToolBarHelper::title('Lapsed members');
-        echo $this->breadcrumbs;
-        echo '<h4>Scope ' . $this->subheading . '</h4>';
+        $csv = $this->app->input->getWord('csv', '');
+
+        if ($csv == '') {
+            ToolBarHelper::title('Lapsed members');
+            echo $this->breadcrumbs;
+            echo '<h4>Scope ' . $this->subheading . '</h4>';
+        }
 
         $select = array(
             'p.membershipExpiryDate',
@@ -486,6 +492,7 @@ class ReportsController extends AdminController {
 
         $rows = $this->toolsHelper->getRows($sql);
         $table = new ToolsTable();
+        $table->set_csv($csv);
         $table->add_header(implode(',', $headers));
 
         if ($rows !== false) {
@@ -500,7 +507,7 @@ class ReportsController extends AdminController {
                 $table->add_item($row->preferred_name);
                 $table->add_item($row->email);
                 $table->add_item((int) $row->role_count);
-                $table->add_item($row->ramblersJoinedDate ? HTMLHelper::_('date', $row->groupJoinedDate, 'd M y') : '');
+                $table->add_item($row->ramblersJoinedDate ? HTMLHelper::_('date', $row->ramblersJoinedDate, 'd M y') : '');
                 $table->add_item($row->groupJoinedDate ? HTMLHelper::_('date', $row->groupJoinedDate, 'd M y') : '');
                 $table->add_item((int) $row->days_lapsed);
                 $table->generate_line();
@@ -509,9 +516,15 @@ class ReportsController extends AdminController {
 
         $table->generate_table();
 
-        $count = is_array($rows) ? count($rows) : 0;
-        echo $count . ' records found<br>';
-        echo $this->toolsHelper->backButton($this->back . '&scope=' . $this->scope);
+        if ($csv == '') {
+            $count = is_array($rows) ? count($rows) : 0;
+            echo $count . ' records found<br>';
+            echo $this->toolsHelper->backButton($this->back . '&scope=' . $this->scope);
+            $target = "administrator/index.php?option=com_ra_members&task=reports.lapsedMembers&csv=LapsedMembers&scope=" . $this->scope;
+            echo $this->toolsHelper->buildButton($target, "Extract as CSV", False, 'lightgreen');
+        } else {
+            Factory::getApplication()->close();
+        }
     }
 
     public function membersByGroup() {
@@ -687,12 +700,16 @@ class ReportsController extends AdminController {
         echo $this->toolsHelper->backButton($this->back);
     }
 
-    public function recentJoiners($csv = "N") {
+    public function recentJoiners() {
+        $csv = $this->app->input->getWord('csv', '');
         $count = 30;
-        ToolBarHelper::title($count . ' most recent Members to have joined the Group');
-        echo $this->breadcrumbs;
-        echo '<h4>Scope ' . $this->subheading . '</h4>';
+        if ($csv == '') {
+            ToolBarHelper::title($count . ' most recent Members to have joined the Group');
+            echo $this->breadcrumbs;
+            echo '<h4>Scope ' . $this->subheading . '</h4>';
+        }
         $table = new ToolsTable();
+        $table->set_csv($csv);
         if ($this->scope == '') {
             $headers = 'Joined,Group,';
         } else {
@@ -724,8 +741,15 @@ class ReportsController extends AdminController {
             $table->add_item($row->days_ago);
             $table->generate_line();
         }
+       
         $table->generate_table();
-        echo $this->toolsHelper->backButton($this->back);
+        if ($csv == '') {
+            echo $this->toolsHelper->backButton($this->back);
+            $target = "administrator/index.php?option=com_ra_members&task=reports.recentJoiners&csv=RecentJoiners";
+            echo $this->toolsHelper->buildButton($target, "Extract as CSV", False, "lightgreen");
+        } else {
+            $this->app->close();
+        }
     }
 
     public function recentUpdates() {
@@ -739,14 +763,14 @@ class ReportsController extends AdminController {
         } else {
             $headers = 'Date,';
         }
-        $headers .= 'Name,Member No,Field,Term,Lapse date,Days ago';
+        $headers .= 'Name,Member No,Field,Details,Days ago';
         $table->add_header($headers);
         $sql = 'SELECT p.groupJoinedDate, p.home_group, p.membershipNumber, p.preferred_name, ';
-        $sql .= 'a.created,  ';
-        $sql .= 'DATEDIFF(CURRENT_DATE,a.created) AS days_ago ';
+        $sql .= 'a.date_amended, a.field_name, a.field_value, ';
+        $sql .= 'DATEDIFF(CURRENT_DATE,a.date_amended) AS days_ago ';
         $sql .= 'FROM `#__ra_profiles_audit` AS a ';
         $sql .= 'INNER JOIN `#__ra_profiles` AS p  ON p.id = a.object_id ';
-        $sql .= 'ORDER BY a.created';
+        $sql .= 'ORDER BY a.date_amended DESC';
 //       echo $sql;
         $rows = $this->toolsHelper->getRows($sql);
         foreach ($rows as $row) {
@@ -759,10 +783,9 @@ class ReportsController extends AdminController {
             $table->add_item($row->preferred_name);
             $table->add_item($row->membershipNumber);
             //$table->add_item($row->email);
-            $table->add_item(HTMLHelper::_('date', $row->groupJoinedDate, 'd M y'));
             $table->add_item($row->field_name);
-            $table->add_item($row->email);
             $table->add_item($row->field_value);
+            $table->add_item($row->days_ago);
             $table->generate_line();
         }
         $table->generate_table();
