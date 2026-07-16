@@ -7,6 +7,7 @@
  * @author      Charlie <webmaster@bigley.me.uk> - https://www.stokeandnewcastleramblers.org.uk
  * 25/04/26 CB created
  * 22/06/26 CB new reports for Volunteers, Affilites
+ * 16/07/26 CB new formatting
  */
 defined('_JEXEC') or die;
 
@@ -24,8 +25,9 @@ use Ramblers\Component\Ra_tools\Site\Helpers\ToolsTable;
 ToolBarHelper::title('Membership reports');
 
 // Import CSS
-$wa = $this->document->getWebAssetManager();
-$wa->registerAndUseStyle('ramblers', 'com_ra_tools/ramblers.css');
+$this->wa = $this->document->getWebAssetManager();
+$this->wa->registerAndUseStyle('ramblers', 'com_ra_tools/ramblers.css');
+$this->wa->registerAndUseStyle('dashboard', 'com_ra_tools/dashboard.css');
 
 $back = 'administrator/index.php?option=com_ra_tools&view=dashboard';
 $breadcrumbs = $this->toolsHelper->buildLink('administrator/index.php', 'Dashboard');
@@ -46,10 +48,16 @@ if (!empty($code) && $code !== 'N') {
     } else {
         $subheading = $code . ' ' . (!empty($item->name) ? htmlspecialchars($item->name) : 'N/A');
     }
+    $group_report_heading = 'Group reports for ' . $code; 
 } else {
     $subheading = 'All records';
+    $group_report_heading = 'Group reports';
 }
 echo '<h4>Scope ' . $subheading . '</h4>';
+?>
+
+<?php
+
 $admin_reports = [
     // only show these reports to superusers
 
@@ -60,8 +68,8 @@ $admin_reports = [
 
 $reports = [
     'Membership statistics' => 'administrator/index.php?option=com_ra_members&task=reports.memberStatistics',
-    'Members by Group' => 'administrator/index.php?option=com_ra_members&task=reports.membersByGroup',
-    'Analysis of members by group' => 'administrator/index.php?option=com_ra_members&task=reports.analyseListMembership',
+//    'Members by Group' => 'administrator/index.php?option=com_ra_members&task=reports.membersByGroup',
+//    'Analysis of members by group' => 'administrator/index.php?option=com_ra_members&task=reports.analyseListMembership',
     'Recent updates' => 'administrator/index.php?option=com_ra_members&task=reports.recentUpdates',
     'Recent joiners' => 'administrator/index.php?option=com_ra_members&task=reports.recentJoiners',
     'Changed group' => 'administrator/index.php?option=com_ra_members&task=reports.changedGroup',
@@ -79,41 +87,46 @@ $reports = [
 //if ($code !== 'N') {
 //    $reports[] = 'Export members' => 'administrator/index.php?option=com_ra_members&task=reports.exportMembers';
 //}
+
+$systemReports = array();
+
+if ($this->toolsHelper->isSuperuser()) {
+    $systemReports = $admin_reports;
+}
+
+if (($this->toolsHelper->isSuperuser()) || ($code == 'N')) {
+    $systemReports = array_merge($systemReports, $reports);
+}
+
+$areaReports = array();
+$show_area_reports = $this->params->get('show_area_reports', 0);
+
+if ($show_area_reports == '1') {
+    foreach ($reports as $caption => $task) {
+        $areaReports[$caption] = $task . '&scope=A';
+    }
+    $areaReports['Members by Group'] = 'administrator/index.php?option=com_ra_members&task=reports.membersByGroup&scope=A';
+}
+
+$groupReports = array();
+
+if ($code !== 'N') {
+    foreach ($reports as $caption => $task) {
+        $groupReports[$caption] = $task . '&scope=G';
+    }
+}
 ?>
 <form action="<?php echo JRoute::_('index.php?option=com_ra_tools&view=reports'); ?>" method="post" name="reportsForm" id="reportsForm">
     <div id="j-main-container" class="span10">
         <div class="clearfix"> </div>
         <?php
-        if ($this->toolsHelper->isSuperuser()) {
-            echo '<h4>System reports</h4>';
-            echo '<ul>';
-//            foreach ($admin_reports as $caption => $task) {
-//                echo '<li>' . $this->toolsHelper->buildLink($task, $caption) . '</li>';
-//            }
+        echo '<div class="dashboard-grid">';
+        echo $this->toolsHelper->buildDashboardReportBlock('System reports', $systemReports);
+        if ($show_area_reports == '1') {       
+            echo $this->toolsHelper->buildDashboardReportBlock('Area reports', $areaReports);
         }
-        if (($this->toolsHelper->isSuperuser()) OR ($code == 'N')) {
-            foreach ($reports as $caption => $task) {
-                echo '<li>' . $this->toolsHelper->buildLink($task, $caption) . '</li>';
-            }
-            echo '</ul>';
-        }
-        $show_area_reports = $this->params->get('show_area_reports', 0);
-        if ($show_area_reports == '1') {
-            echo '<h4>Area reports</h4>';
-            echo '<ul>';
-            foreach ($reports as $caption => $task) {
-                echo '<li>' . $this->toolsHelper->buildLink($task . '&scope=A', $caption) . '</li>';
-            }
-            echo '</ul>';
-        }
-        if ($code !== 'N') {
-            echo '<h4>Group reports</h4>';
-            echo '<ul>';
-            foreach ($reports as $caption => $task) {
-                echo '<li>' . $this->toolsHelper->buildLink($task . '&scope=G', $caption) . '</li>';
-            }
-            echo '</ul>';
-        }
+        echo $this->toolsHelper->buildDashboardReportBlock($group_report_heading, $groupReports);
+        echo '</div>';
         echo $this->toolsHelper->backButton($back);
         ?>
         <input type="hidden" name="task" value="" />

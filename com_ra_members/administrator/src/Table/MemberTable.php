@@ -75,7 +75,7 @@ class MemberTable extends Table implements VersionableTableInterface, TaggableTa
      */
     public function __construct(DatabaseDriver $db) {
         $this->typeAlias = 'com_ra_members.member';
-        parent::__construct('#__ra_profiles', 'id', $db);
+        parent::__construct('#__ra_profiles', 'member_id', $db);
         $this->setColumnAlias('published', 'state');
     }
 
@@ -143,12 +143,12 @@ class MemberTable extends Table implements VersionableTableInterface, TaggableTa
         if (isset($array['groupCode'])) {
             $array['group_code'] = strtoupper(trim((string) $array['groupCode']));
         }
-        // Ensure names are in sentance case
+        // Ensure names are in sentence case without relying on removed Joomla helpers.
         if (isset($array['firstName'])) {
-            $array['first_name'] = OutputFilter::stringSentences(trim((string) $array['firstName']));
+            $array['first_name'] = $this->normaliseName(trim((string) $array['firstName']));
         }
         if (isset($array['lastName'])) {
-            $array['last_name'] = OutputFilter::stringSentences(trim((string) $array['lastName']));
+            $array['last_name'] = $this->normaliseName(trim((string) $array['lastName']));
         }   
         // Truncate affiliate group, keep just the 4 character code
         if (isset($array['affiliateMemberPrimaryGroup'])) {
@@ -242,18 +242,20 @@ class MemberTable extends Table implements VersionableTableInterface, TaggableTa
      * @return bool
      */
     public function check() {
-        // If there is an ordering column and this is a new row then get the next ordering value
-        if (property_exists($this, 'ordering') && $this->id == 0) {
-            $this->ordering = self::getNextOrder();
-        }
-
-        // Check if home_group is unique
-        if (!$this->isUnique('home_group')) {
-            throw new \Exception(Text::sprintf('COM_RA_MEMBERS_MEMBER_HOME_GROUP_UNIQUE_ERROR', 'home_group', $this->home_group));
-        }
-
 
         return parent::check();
+    }
+
+    private function normaliseName($value) {
+        if ($value === '') {
+            return $value;
+        }
+
+        if (function_exists('mb_convert_case')) {
+            return mb_convert_case(mb_strtolower($value, 'UTF-8'), MB_CASE_TITLE, 'UTF-8');
+        }
+
+        return ucwords(strtolower($value));
     }
 
     /**

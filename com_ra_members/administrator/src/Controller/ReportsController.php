@@ -12,6 +12,7 @@
  * 26/06/26 CB recentUpdates
  * 29/06/26 CB lapsedMembers / ramblersJoinedDate
  * 09/07/CB csv downloads
+ * 13/07/26 CB recentJoiners - sort by date withing Group
  */
 
 namespace Ramblers\Component\Ra_members\Administrator\Controller;
@@ -571,13 +572,16 @@ class ReportsController extends AdminController {
         $tot = $this->toolsHelper->getValue($sql);
         echo 'Total members: ' . $tot . '<br>';
 
-        $sql = 'SELECT COUNT(*) as cnt FROM #__users ';
-        $sql .= $this->buildCriterion('WHERE', 'home_group');
-        $tot_users = $this->toolsHelper->getValue($sql);
-        echo 'Total users: ' . $tot_users . '<br>';
+         if ($this->subheading == 'All records') {
+            $sql = 'SELECT COUNT(*) as cnt FROM #__users ';
+            $sql .= $this->buildCriterion('WHERE', 'home_group');
+            $tot_users = $this->toolsHelper->getValue($sql);
+            echo 'Total users: ' . $tot_users . '<br>';
+        }
+
 
 // Find out how many have an email address
-        $table->add_item('With email/ Without email');
+        $table->add_item('1 With email/ 2 Without email');
         $sql = 'SELECT COUNT(p.id) as cnt FROM #__ra_profiles AS p ';
         $sql .= 'INNER JOIN #__users AS u ON u.id = p.id ';
         $sql .= $this->buildCriterion('WHERE', 'home_group');
@@ -595,7 +599,7 @@ class ReportsController extends AdminController {
         $table->generate_line();
 
         // Find out how many have a membership number
-        $table->add_item('With Membership No/ Without Membership No');
+        $table->add_item('1 With Membership No/ 2 Without Membership No');
         $sql = 'SELECT COUNT(*) as cnt FROM #__ra_profiles ';
         $sql .= 'WHERE membershipNumber IS NOT NULL ';
         //       echo $sql . '<br>';
@@ -622,7 +626,7 @@ class ReportsController extends AdminController {
             $operator = ' AND ';
         }
 
-        $table->add_item('Member / Affiliate');
+        $table->add_item('1 Member / 2 Affiliate');
         $criterion = $operator . 'memberType="';
         $one = $this->toolsHelper->getValue($sql . $criterion . 'Member' . '"');
         $two = $this->toolsHelper->getValue($sql . $criterion . 'Affiliate' . '"');
@@ -632,7 +636,7 @@ class ReportsController extends AdminController {
         $table->add_item($balance);
         $table->generate_line();
 
-        $table->add_item('Active / Pending');
+        $table->add_item('1 Active / 2 Pending');
         $criterion = $operator . 'memberStatus="';
         $one = $this->toolsHelper->getValue($sql . $criterion . 'Active' . '"');
 
@@ -643,7 +647,7 @@ class ReportsController extends AdminController {
         $table->add_item($balance);
         $table->generate_line();
 
-        $table->add_item('Annual / Life');
+        $table->add_item('1 Annual / 2 Life');
         $criterion = $operator . 'memberTerm="';
         $one = $this->toolsHelper->getValue($sql . $criterion . 'Annual' . '"');
         $two = $this->toolsHelper->getValue($sql . $criterion . 'Life' . '"');
@@ -653,7 +657,7 @@ class ReportsController extends AdminController {
         $table->add_item($balance);
         $table->generate_line();
 
-        $table->add_item('Individual / Joint');
+        $table->add_item('1 Individual / 2 Joint');
         $criterion = $operator . 'membershipArrangement="';
         $one = $this->toolsHelper->getValue($sql . $criterion . 'Individual' . '"');
         $two = $this->toolsHelper->getValue($sql . $criterion . 'Joint' . '"');
@@ -663,7 +667,7 @@ class ReportsController extends AdminController {
         $table->add_item($balance);
         $table->generate_line();
 
-        $table->add_item('Volunteer Yes/ Volunteer No');
+        $table->add_item('1 Volunteer Yes/ 2 Volunteer No');
         $one = $this->toolsHelper->getValue($sql . $operator . ' volunteer="Y"');
         $two = $this->toolsHelper->getValue($sql . $operator . ' volunteer IS NULL');
         $table->add_item($one);
@@ -722,12 +726,14 @@ class ReportsController extends AdminController {
         $sql .= 'DATEDIFF(CURRENT_DATE,p.groupJoinedDate) AS days_ago ';
         $sql .= 'FROM `#__ra_profiles` AS p ';
         $sql .= 'LEFT JOIN #__users AS u ON u.id = p.id ';
-        $sql .= 'ORDER BY p.groupJoinedDate DESC ';
+        $sql .= $this->buildCriterion('WHERE', 'home_group');
+        $sql .= 'ORDER BY p.home_group, p.groupJoinedDate DESC ';
         $sql .= 'LIMIT ' . $count;
 //       echo $sql;
         $rows = $this->toolsHelper->getRows($sql);
         foreach ($rows as $row) {
-            $table->add_item(HTMLHelper::_('date', $row->groupJoinedDate, 'd M y'));
+            $details = is_null($row->groupJoinedDate) ? '' : HTMLHelper::_('date', $row->groupJoinedDate, 'd M y');
+            $table->add_item($details);
             if ($this->scope == '') {
                 $table->add_item($row->home_group);
             }
@@ -737,7 +743,8 @@ class ReportsController extends AdminController {
 
             $table->add_item($row->memberType);
             $table->add_item($row->memberTerm);
-            $table->add_item(HTMLHelper::_('date', $row->membershipExpiryDate, 'd M y'));
+            $details = is_null($row->membershipExpiryDate) ? '' : HTMLHelper::_('date', $row->membershipExpiryDate, 'd M y');   
+            $table->add_item($details);
             $table->add_item($row->days_ago);
             $table->generate_line();
         }

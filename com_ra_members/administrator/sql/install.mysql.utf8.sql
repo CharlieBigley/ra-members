@@ -1,4 +1,5 @@
 # 22/06/26 Add welcome_sent_date
+# 13/07/26 CB organisation/email_header -> varchar(255)
 CREATE TABLE IF NOT EXISTS `#__ra_profiles` (
   `id` int UNSIGNED NULL,
   `member_id` int UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -53,7 +54,7 @@ CREATE TABLE IF NOT EXISTS `#__ra_profiles` (
 PRIMARY KEY (`member_id`)
 ,KEY `idx_membershipNumber` (`membershipNumber`)
 ,KEY `idx_salesforceId` (`salesforceId`)
-,KEY `idx_modified_by` (`modified_by`)
+,KEY `idx_id` (`id`)
 ) DEFAULT COLLATE=utf8mb4_unicode_ci;
 # ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `#__ra_profiles_audit` (
@@ -91,7 +92,7 @@ CREATE TABLE `#__ra_organisations` (
   `uses_ngx` CHAR(1)  NULL DEFAULT NULL,
   `logo` varchar(100) DEFAULT NULL,
   `logo_align` varchar(5) NOT NULL DEFAULT 'right',
-  `email_header` varchar(100) DEFAULT NULL,
+  `email_header` varchar(255) DEFAULT NULL,
   `colour_header` varchar(24) DEFAULT NULL,
   `colour_body` varchar(24) NOT NULL,
   `colour_footer` varchar(24) DEFAULT NULL,

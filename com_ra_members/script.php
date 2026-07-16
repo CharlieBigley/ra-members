@@ -463,7 +463,8 @@ class Com_Ra_membersInstallerScript {
             $this->checkColumn('ra_organisations', 'uses_ra_tools', 'A', 'CHAR(1) NULL DEFAULT NULL AFTER mailman_active; ');
             $this->checkColumn('ra_organisations', 'uses_ra_mailman', 'A', 'CHAR(1) NULL DEFAULT NULL AFTER uses_ra_tools; ');
             $this->checkColumn('ra_organisations', 'uses_ngx', 'A', 'CHAR(1) NULL DEFAULT NULL AFTER uses_ra_mailman; ');
-        }
+            $this->checkColumn('ra_organisations', 'email_header', 'U', 'VARCHAR(255); ');
+        }        
         return true;
     }
 

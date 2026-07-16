@@ -1,80 +1,95 @@
 <?php
 
 /**
- * @version    2.0.1
- * @package    com_ra_members
+ * @version    CVS: 1.0.0
+ * @package    Com_Ra_members
  * @author     Charlie Bigley <charlie@bigley.me.uk>
- * @copyright  2025 Charlie Bigley
+ * @copyright  2026 Charlie Bigley
  * @license    GNU General Public License version 2 or later; see LICENSE.txt
- * 25/04/26 CB Created
- * 20/06/26 CB create function add to store parameters
+ * 22/06/26 CB delete function
+ * 15/07/25 CB add function cancel
  */
 
 namespace Ramblers\Component\Ra_members\Administrator\Controller;
 
 \defined('_JEXEC') or die;
 
-use Joomla\CMS\Component\ComponentHelper;
-use Joomla\CMS\Factory;
-use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\MVC\Controller\FormController;
-use Joomla\CMS\Table\Table;
-use Joomla\CMS\Router\Route;
-use Ramblers\Component\Ra_tools\Site\Helpers\SchemaHelper;
+use Joomla\CMS\Versioning\VersionableControllerTrait;
+use Joomla\CMS\Factory;
+use Joomla\CMS\Helper\ContentHelper;
+use Ramblers\Component\Ra_mailman\Site\Helpers\Mailhelper;
+use Ramblers\Component\Ra_tools\Site\Helpers\ToolsHtml;
 use Ramblers\Component\Ra_tools\Site\Helpers\ToolsHelper;
 use Ramblers\Component\Ra_tools\Site\Helpers\ToolsTable;
 
 /**
- * Member controller class.
+ * Role controller class.
  *
- * @since  2.0
+ * @since  1.0.0
  */
-class MemberController extends FormController {
+class RoleController extends FormController {
 
-    protected $view_list = 'members';
+    use VersionableControllerTrait;
 
-    public function add() {
-        $app = Factory::getApplication();
-        $input = $app->input;
+    protected $app;
+    protected $db;
+    protected $toolsHelper;
+    protected $view_list = 'roles';
 
-        // Get params, with proper filtering
-        $member_id = $input->getInt('member_id', 0);
-        $code = $input->getAlnum('code', '');
-
-        /** @var XxModelXx $model */
-        $model = $this->getModel('MemberModel');
-
-        // Push to model state so Model can see it
-        $model->setState('com_ra_member.member.member_id', $member_id);
-        $model->setState('com_ra_member.member.code', $code);
-
-        // Continue with normal add flow → loads form
-        return parent::add();
+    public function __construct(array $config = array(), \Joomla\CMS\MVC\Factory\MVCFactoryInterface $factory = null) {
+//        die('Mail_lstController');
+        parent::__construct($config, $factory);
+        $this->db = Factory::getDbo();
+        $this->toolsHelper = new ToolsHelper;
+        $this->app = Factory::getApplication();
+//       $this->mailHelper = new Mailhelper;
+        $wa = Factory::getApplication()->getDocument()->getWebAssetManager();
+        $wa->registerAndUseStyle('ramblers', 'com_ra_tools/ramblers.css');
     }
 
-    public function showAudit() {
-        $id = $this->app->input->getInt('id');
-        $toolsHelper = new ToolsHelper;
-        echo '<h2>Membership audit</h2>';
-        echo '<p>Changes to member record</p>';
-        echo 'Audit for member id ' . $id . '<br>';
-        //   return;
-        $table = new ToolsTable;
-        $table->add_header("Date,User,Action,Field,Old value,New value");
-        $sql = 'SELECT * FROM #__ra_profiles_audit WHERE object_id = ' . $id . ' ORDER BY date_amended DESC';
-        $audit = $toolsHelper->getRows($sql);
-        foreach ($audit as $entry) {
-            $table->add_item(HTMLHelper::_('date', $entry->date_amended, 'd M Y H:i:s'));
-            $table->add_item($entry->field_name);
-            $table->add_item($entry->record_type);
-            $table->add_item($entry->field_value);
-            //       $table->add_item($entry->old_value);
-            //       $table->add_item($entry->new_value);
-            $table->generate_line();
+    public function cancel($key = null, $urlVar = null) {
+        $target = 'index.php?option=com_ra_members&';
+        // User state will have been set by the calling program
+        $member_id = $this->app->getUserState('com_ra_members.member.member_id','0');
+        $callback = $this->app->getUserState('com_ra_members.member.callback','');
+        $this->app->enqueueMessage('Role controller: callback= ' . $callback, 'Info"');
+        if ($callback == 'member') {
+            $target .= 'view=member&id=' . $member_id;
+        } elseif ($callback == 'organisation') {
+            $target .= 'view=organisation&id=' . $member_id;
+        } else {
+            $target .= 'view=roles';
+        }
+        $this->app->setUserState('com_ra_members.member.member_id',null);
+        $this->app->setUserState('com_ra_members.member.callback',null);
+        $this->setRedirect($target);
+    }
+
+    public function deleteRole() {
+        $id = $this->app->input->getInt('id', '0');
+        $callback = $this->app->input->getWord('callback', 'member');
+        $this->app->enqueueMessage('Deleting Role ' . $id, 'Info"');
+        try {
+            $table = $this->getTable('Role', 'Ramblers\\Component\\Ra_members\\Administrator\\Table\\');
+
+// Load the record into memory and execute the delete
+            if ($table->load($id)) {
+                if ($table->delete()) {
+                    $this->setMessage('Record successfully deleted.');
+                } else {
+                    $this->setMessage('Failed to delete the record.', 'error');
+                }
+            } else {
+                $this->setMessage('Record not found.', 'warning');
+            }
+        } catch (\Exception $e) {
+// Catch database or syntax exceptions safely
+            $this->setMessage($e->getMessage(), 'error');
         }
 
-
-        echo '<p><a href="' . Route::_('index.php?option=com_ra_members&view=members') . '">Back to members list</a></p>';
+// Redirect the user back to the list view
+    $this->setRedirect('index.php?option=com_ra_members&view=' . $callback);
     }
 
 }

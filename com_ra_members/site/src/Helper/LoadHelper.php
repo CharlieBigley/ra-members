@@ -22,9 +22,9 @@ defined('_JEXEC') or die;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Ramblers\Component\Ra_mailman\Site\Helpers\Mailhelper;
-use Ramblers\Component\Ra_mailman\Site\Helpers\UserHelper;
-use Ramblers\Component\Ra_tools\Site\Helpers\ToolsHelper;
 use Ramblers\Component\Ra_tools\Site\Helpers\JsonHelper;
+use Ramblers\Component\Ra_tools\Site\Helpers\ToolsHelper;
+use Ramblers\Component\Ra_tools\Site\Helpers\UserHelper;
 use Ramblers\Component\Ra_members\Administrator\Table\MemberTable;
 
 class LoadHelper {
@@ -38,12 +38,16 @@ class LoadHelper {
     protected $profileColumns;
     protected $auditColumns;
     protected $roleColumns;
+    protected $userColumns;
+    protected $duplicateFeedMembers = array();
+    protected $duplicateFeedNotifications = array();
     private $counter = 0;
     public $batch_mode = false; // if true, messages are added to $this->messages instead of enqueued, for display at the end of the batch process
     public $comments;
     public $comment_count;
     public $count_new_profiles = 0;
     public $count_new_users = 0;
+    public $count_legacy_profiles_reused = 0;
     public $count_not_updated = 0;
     public $count_updated = 0;
     public $errors;
@@ -123,108 +127,399 @@ class LoadHelper {
         return array_values($roleRows);
     }
 
-    public function checkEmail($email, $member_id, $profile_id) {
-        /*
-          Ensure the profile is linked to a Joomla user record for this email address.
+    private function buildUserName($member) {
+        $firstName = trim((string) ($member['firstName'] ?? ''));
+        $lastName = trim((string) ($member['lastName'] ?? ''));
+        $name = trim($firstName . ' ' . $lastName);
 
-          For a newly created profile, reuse an existing Joomla user if one already exists for
-          the email address; otherwise create a new user. In either case, link the profile to
-          that user and create a subscription to the default mailing list.
+        return ($name === '') ? null : $name;
+    }
 
-          For an existing linked profile, only the Joomla user email should need updating.
+    private function createUserFromMember($member) {
+        $email = $this->normaliseScalar($member['email'] ?? null);
 
-          This method assumes lookupUser() returns either a user object or null. If the shared
-          ToolsHelper::getItem() helper returns false for SQL failures, that needs handling in
-          the shared helper before callers can safely distinguish "not found" from "query failed".
-         */
-//        if (JDEBUG) {
-        $message = 'Checking email ' . $email . ' for member_id ';
-        if (is_null($member_id)) {
-            $message .= 'NULL';
-        } else {
-            $message .= $member_id;
+        if ($email === null) {
+            return null;
         }
-        $message .= ', profile id ';
-        if (is_null($profile_id)) {
-            $message .= 'NULL';
-        } else {
-            $message .= $profile_id;
-        }
-        $this->messages[] = $message;
-//        }
-        // see if an existing user record exists
-        $existing_user = $this->lookupUser($email);
-        if ($existing_user === false) {
-            $this->messages[] = 'Error looking up Joomla user for email ' . $email . ': ' . $this->toolsHelper->error;
+
+        $userHelper = new UserHelper;
+        $userHelper->group_code = $this->normaliseScalar($member['groupCode'] ?? '');
+        $userHelper->name = $this->buildUserName($member);
+        $userHelper->email = $email;
+
+        if (!$userHelper->createUserOnly()) {
+            $this->messages[] = 'Unable to create user for ' . $email . ': ' . $userHelper->error;
             return false;
         }
-//        var_dump($existing_user);
-//        echo '<br>';
-//        die;
-//   return;
-        if (is_null($profile_id) || $profile_id == 0) {
-            if (is_object($existing_user) && !empty($existing_user->id)) {
-                $user_id = $existing_user->id;
-                if (JDEBUG) {
-                    $message = 'Existing user record found with id ' . $user_id . ' for email ' . $email;
-                    echo $message . '<br>';
-                    $this->messages[] = $message;
-                }
-                // delete any pre-existing profile record
-                $this->purgeProfile($existing_user->id);
-                // update the profile record
-                $sql = 'UPDATE #__ra_profiles SET id=' . $existing_user->id;
-                $sql .= ' WHERE member_id=' . $member_id;
-                if (JDEBUG) {
-                    $this->messages[] = $sql;
-                }
-                $this->toolsHelper->executeCommand($sql);
-            } else {
-                // create a new User record
-                $userHelper = new UserHelper;
-                $userHelper->name = $this->lookupPreferredName($member_id);
-                $userHelper->email = $email;
-                $userHelper->createUserDirect();
-                $user_id = $userHelper->user_id;
-                $this->count_new_users++;
-                if (JDEBUG) {
-                    $message = 'Created new user record with id ' . $user_id . ' for email ' . $email;
-                    $this->messages[] = $message;
-                    $this->messages[] = 'Updating profile record with member_id ' . $member_id . ' to link to user record with id ' . $user_id;
-                }
-                // update the profile record
-                $sql = 'UPDATE #__ra_profiles SET id=' . $user_id;
-                $sql .= ' WHERE member_id=' . $member_id;
-                if (JDEBUG) {
-                    $this->messages[] = $sql;
-                }
-                $this->toolsHelper->executeCommand($sql);
-            }
-            // Create a subscription to the primary mailing list for this group
 
-            if ($this->mailHelper->subscribe($this->primary_list, $user_id, 1, 3)) {
-                $this->messages[] = 'Subscription created to list ' . $this->primary_list;
-            } else {
-                $this->messages[] = 'Error creating subscription to list ' . $this->primary_list . ': ' . $this->mailHelper->message;
-            }
+        $this->count_new_users++;
+
+        return (int) $userHelper->user_id;
+    }
+
+    private function ensurePrimarySubscription($userId) {
+        if ((int) $userId <= 0 || !$this->primary_list) {
+            return;
+        }
+
+        if ($this->mailHelper->subscribe($this->primary_list, (int) $userId, 1, 3)) {
+            $this->messages[] = 'Subscription created to list ' . $this->primary_list;
         } else {
-            // we have a valid profile_id - update the email address if needed
-            // check that the email address has not been updated
-            if (is_null($existing_user) || $existing_user->email !== $email) {
-                $user_id = (int) $profile_id;
-                $sql = 'UPDATE #__users SET email=' . $this->db->quote($email);
-// $sql .=
-                $sql .= ' WHERE id=' . $user_id;
-                echo $sql . '<br>';
-                $this->toolsHelper->executeCommand($sql);
-                if (is_object($existing_user)) {
-                    $this->messages[] = 'Updated email address from ' . $existing_user->email . ' to ' . $email . ' for user record with id ' . $user_id;
-                } else {
-                    $this->messages[] = 'Updated email address to ' . $email . ' for user record with id ' . $user_id;
+            $this->messages[] = 'Error creating subscription to list ' . $this->primary_list . ': ' . $this->mailHelper->message;
+        }
+    }
+
+    private function getLegacyProfileByUserId($userId) {
+        if ((int) $userId <= 0) {
+            return null;
+        }
+
+        $query = $this->db->getQuery(true)
+                ->select('*')
+                ->from($this->db->quoteName('#__ra_profiles'))
+                ->where($this->db->quoteName('id') . ' = ' . (int) $userId)
+                ->where($this->db->quoteName('salesforceId') . ' IS NULL');
+
+        $this->db->setQuery($query, 0, 1);
+
+        return $this->db->loadObject();
+    }
+
+    private function getProfileByUserId($userId) {
+        if ((int) $userId <= 0) {
+            return null;
+        }
+
+        $query = $this->db->getQuery(true)
+                ->select('*')
+                ->from($this->db->quoteName('#__ra_profiles'))
+                ->where($this->db->quoteName('id') . ' = ' . (int) $userId)
+                ->order($this->db->quoteName('member_id') . ' ASC');
+
+        $this->db->setQuery($query, 0, 1);
+
+        return $this->db->loadObject();
+    }
+
+    private function getProfilesByUserId($userId, $excludeMemberId = 0) {
+        if ((int) $userId <= 0) {
+            return array();
+        }
+
+        $query = $this->db->getQuery(true)
+                ->select('*')
+                ->from($this->db->quoteName('#__ra_profiles'))
+                ->where($this->db->quoteName('id') . ' = ' . (int) $userId);
+
+        if ((int) $excludeMemberId > 0) {
+            $query->where($this->db->quoteName('member_id') . ' <> ' . (int) $excludeMemberId);
+        }
+
+        $this->db->setQuery($query);
+        $rows = $this->db->loadObjectList();
+
+        return is_array($rows) ? $rows : array();
+    }
+
+    private function getUserColumns() {
+        if ($this->userColumns === null) {
+            $this->userColumns = $this->db->getTableColumns('#__users', false);
+        }
+
+        return $this->userColumns;
+    }
+
+    private function lookupUserById($userId) {
+        if ((int) $userId <= 0) {
+            return null;
+        }
+
+        $sql = 'SELECT id, name, username, email FROM #__users WHERE id=' . (int) $userId;
+        return $this->toolsHelper->getItem($sql);
+    }
+
+    private function loadProfileTable($memberId = 0) {
+        $profile = new MemberTable($this->db);
+
+        if ((int) $memberId > 0) {
+            $profile->load((int) $memberId);
+        }
+
+        return $profile;
+    }
+
+    private function notifyUserConflict($member, $reason, $user = null, array $profiles = array()) {
+        $params = ComponentHelper::getParams('com_ra_tools');
+        $to = trim((string) $params->get('email_new_user', ''));
+        $membershipNumber = $this->normaliseScalar($member['membershipNumber'] ?? null);
+        $salesforceId = $this->normaliseScalar($member['salesforceId'] ?? null);
+        $email = $this->normaliseScalar($member['email'] ?? null);
+
+        $message = 'Membership sync requires manual intervention.<br>';
+        $message .= 'Reason: ' . htmlspecialchars($reason, ENT_QUOTES, 'UTF-8') . '<br>';
+        $message .= 'Salesforce ID: ' . htmlspecialchars((string) $salesforceId, ENT_QUOTES, 'UTF-8') . '<br>';
+        $message .= 'Membership number: ' . htmlspecialchars((string) $membershipNumber, ENT_QUOTES, 'UTF-8') . '<br>';
+        $message .= 'Feed name: ' . htmlspecialchars((string) $this->buildUserName($member), ENT_QUOTES, 'UTF-8') . '<br>';
+        $message .= 'Feed email: ' . htmlspecialchars((string) $email, ENT_QUOTES, 'UTF-8') . '<br>';
+
+        if (is_object($user) && !empty($user->id)) {
+            $message .= 'User id: ' . (int) $user->id . '<br>';
+            $message .= 'Current user name: ' . htmlspecialchars((string) $user->name, ENT_QUOTES, 'UTF-8') . '<br>';
+            $message .= 'Current username: ' . htmlspecialchars((string) $user->username, ENT_QUOTES, 'UTF-8') . '<br>';
+            $message .= 'Current email: ' . htmlspecialchars((string) $user->email, ENT_QUOTES, 'UTF-8') . '<br>';
+        }
+
+        if (!empty($profiles)) {
+            $details = array();
+
+            foreach ($profiles as $profile) {
+                $details[] = 'member_id ' . (int) $profile->member_id
+                        . ' membershipNumber ' . (string) ($profile->membershipNumber ?? '')
+                        . ' salesforceId ' . (string) ($profile->salesforceId ?? '');
+            }
+
+            $message .= 'Linked profiles: ' . htmlspecialchars(implode('; ', $details), ENT_QUOTES, 'UTF-8') . '<br>';
+        }
+
+        if ($to !== '') {
+            $this->toolsHelper->sendEmail($to, '', 'Membership sync conflict for shared email', $message);
+        }
+
+        $this->messages[] = 'Manual intervention required for Salesforce ID ' . $salesforceId . ': ' . $reason;
+        $this->logMessage('Manual intervention required for Salesforce ID ' . $salesforceId . ': ' . $reason, '3');
+    }
+
+    private function notifyDuplicateFeedEmail($email, $user = null, array $profiles = array()) {
+        $email = $this->normaliseScalar($email);
+
+        if ($email === null) {
+            return;
+        }
+
+        $key = strtolower($email);
+
+        if (isset($this->duplicateFeedNotifications[$key])) {
+            return;
+        }
+
+        $params = ComponentHelper::getParams('com_ra_tools');
+        $to = trim((string) $params->get('email_new_user', ''));
+        $members = $this->duplicateFeedMembers[$key] ?? array();
+        $message = 'Membership sync found duplicate email usage in the Salesforce feed.<br>';
+        $message .= 'Email: ' . htmlspecialchars($email, ENT_QUOTES, 'UTF-8') . '<br>';
+        $message .= 'Action required: decide which Joomla user name should be used for this shared email address.' . '<br>';
+        $message .= 'If no Joomla user already exists for this email address, create one user manually using the shared email address and the chosen name.' . '<br>';
+        $message .= 'If a Joomla user already exists for this email address, update that user manually if you want a different name to be used.' . '<br>';
+        $message .= 'After that manual step is complete, run the membership import again. The next import will link both profile records to that Joomla user automatically.' . '<br>';
+
+        if (!empty($members)) {
+            $rows = array();
+
+            foreach ($members as $member) {
+                $rows[] = htmlspecialchars((string) $this->buildUserName($member), ENT_QUOTES, 'UTF-8')
+                        . ' / Salesforce ID ' . htmlspecialchars((string) ($member['salesforceId'] ?? ''), ENT_QUOTES, 'UTF-8')
+                        . ' / Membership number ' . htmlspecialchars((string) ($member['membershipNumber'] ?? ''), ENT_QUOTES, 'UTF-8');
+            }
+
+            $message .= 'Feed members: ' . implode('<br>', $rows) . '<br>';
+        }
+
+        if (is_object($user) && !empty($user->id)) {
+            $message .= 'Current Joomla user id: ' . (int) $user->id . '<br>';
+            $message .= 'Current Joomla user name: ' . htmlspecialchars((string) $user->name, ENT_QUOTES, 'UTF-8') . '<br>';
+            $message .= 'Current Joomla username: ' . htmlspecialchars((string) $user->username, ENT_QUOTES, 'UTF-8') . '<br>';
+            $message .= 'Current Joomla email: ' . htmlspecialchars((string) $user->email, ENT_QUOTES, 'UTF-8') . '<br>';
+        }
+
+        if (!empty($profiles)) {
+            $details = array();
+
+            foreach ($profiles as $profile) {
+                $details[] = 'member_id ' . (int) $profile->member_id
+                        . ' membershipNumber ' . (string) ($profile->membershipNumber ?? '')
+                        . ' salesforceId ' . (string) ($profile->salesforceId ?? '');
+            }
+
+            $message .= 'Linked profiles: ' . htmlspecialchars(implode('; ', $details), ENT_QUOTES, 'UTF-8') . '<br>';
+        }
+
+        if ($to !== '') {
+            $this->toolsHelper->sendEmail($to, '', 'Membership sync duplicate email in feed', $message);
+        }
+
+        $this->duplicateFeedNotifications[$key] = true;
+        $this->messages[] = 'Manual intervention required for duplicate feed email ' . $email;
+        $this->logMessage('Manual intervention required for duplicate feed email ' . $email, '3');
+    }
+
+    private function resolveProfileRow($member) {
+        $salesforceId = $this->normaliseScalar($member['salesforceId'] ?? null);
+        $profile = $this->getProfileBySalesforceId($salesforceId);
+
+        if ($profile !== null) {
+            return array($profile, false);
+        }
+
+        $email = $this->normaliseScalar($member['email'] ?? null);
+
+        if ($email === null) {
+            return array(null, false);
+        }
+
+        $user = $this->lookupUser($email);
+
+        if (!is_object($user) || empty($user->id)) {
+            return array(null, false);
+        }
+
+        $legacyProfile = $this->getLegacyProfileByUserId((int) $user->id);
+
+        if ($legacyProfile !== null) {
+            return array($legacyProfile, true);
+        }
+
+        return array(null, false);
+    }
+
+    private function resolveUserId($member, $profileRow) {
+        $email = $this->normaliseScalar($member['email'] ?? null);
+        $isDuplicateFeedEmail = $this->isDuplicateFeedEmail($email);
+
+        if ($email === null) {
+            if (is_object($profileRow) && !empty($profileRow->id)) {
+                return array((int) $profileRow->id, false, false);
+            }
+
+            return array(null, false, false);
+        }
+
+        $desiredName = $this->buildUserName($member);
+        $existingUserId = is_object($profileRow) && !empty($profileRow->id) ? (int) $profileRow->id : 0;
+
+        if ($existingUserId > 0) {
+            $existingUser = $this->lookupUserById($existingUserId);
+
+            if (is_object($existingUser) && !empty($existingUser->id)) {
+                $emailOwner = $this->lookupUser($email);
+
+                if (is_object($emailOwner) && (int) $emailOwner->id !== $existingUserId) {
+                    $this->notifyUserConflict($member, 'email already belongs to a different Joomla user', $emailOwner, $this->getProfilesByUserId((int) $emailOwner->id));
+                    return array($existingUserId, false, false);
                 }
+
+                $sharedProfiles = $this->getProfilesByUserId($existingUserId, (int) ($profileRow->member_id ?? 0));
+                $needsUserUpdate = $this->normaliseScalar($existingUser->name ?? null) !== $this->normaliseScalar($desiredName)
+                        || $this->normaliseScalar($existingUser->email ?? null) !== $email
+                        || $this->normaliseScalar($existingUser->username ?? null) !== $email;
+
+                if ($isDuplicateFeedEmail) {
+                    $this->notifyDuplicateFeedEmail($email, $existingUser, $this->getProfilesByUserId($existingUserId));
+                    return array($existingUserId, false, false);
+                }
+
+                if (!empty($sharedProfiles) && $needsUserUpdate) {
+                    $this->notifyUserConflict($member, 'shared Joomla user would need updating', $existingUser, $sharedProfiles);
+                    return array($existingUserId, false, false);
+                }
+
+                $this->updateUserRecord($existingUserId, $member, $existingUser);
+
+                return array($existingUserId, false, false);
             }
         }
+
+        $matchedUser = $this->lookupUser($email);
+
+        if (is_object($matchedUser) && !empty($matchedUser->id)) {
+            $sharedProfiles = $this->getProfilesByUserId((int) $matchedUser->id, (int) ($profileRow->member_id ?? 0));
+
+            if ($isDuplicateFeedEmail) {
+                $this->notifyDuplicateFeedEmail($email, $matchedUser, $this->getProfilesByUserId((int) $matchedUser->id));
+                return array((int) $matchedUser->id, false, true);
+            }
+
+            if (!empty($sharedProfiles) && $this->normaliseScalar($matchedUser->name ?? null) !== $this->normaliseScalar($desiredName)) {
+                $this->notifyUserConflict($member, 'matched shared Joomla user would need a name change', $matchedUser, $sharedProfiles);
+                return array((int) $matchedUser->id, false, true);
+            }
+
+            $this->updateUserRecord((int) $matchedUser->id, $member, $matchedUser);
+
+            return array((int) $matchedUser->id, false, true);
+        }
+
+        if ($isDuplicateFeedEmail) {
+            $this->notifyDuplicateFeedEmail($email);
+            return array(null, false, false);
+        }
+
+        $createdUserId = $this->createUserFromMember($member);
+
+        if ($createdUserId === false) {
+            return array(false, false, false);
+        }
+
+        return array($createdUserId, true, true);
+    }
+
+    private function updateUserRecord($userId, $member, $existingUser = null) {
+        if ((int) $userId <= 0) {
+            return false;
+        }
+
+        if (!is_object($existingUser)) {
+            $existingUser = $this->lookupUserById($userId);
+        }
+
+        if (!is_object($existingUser) || empty($existingUser->id)) {
+            return false;
+        }
+
+        $email = $this->normaliseScalar($member['email'] ?? null);
+        $name = $this->buildUserName($member);
+        $fields = array();
+
+        if ($this->valuesDiffer($existingUser->name ?? null, $name)) {
+            $fields[] = $this->db->quoteName('name') . ' = ' . $this->quoteValue($name);
+        }
+
+        if ($email !== null) {
+            if ($this->valuesDiffer($existingUser->username ?? null, $email)) {
+                $fields[] = $this->db->quoteName('username') . ' = ' . $this->quoteValue($email);
+            }
+
+            if ($this->valuesDiffer($existingUser->email ?? null, $email)) {
+                $fields[] = $this->db->quoteName('email') . ' = ' . $this->quoteValue($email);
+            }
+
+            if (array_key_exists('signon', $this->getUserColumns())) {
+                $fields[] = $this->db->quoteName('signon') . ' = ' . $this->quoteValue($email);
+            }
+        }
+
+        if (empty($fields)) {
+            return true;
+        }
+
+        $query = $this->db->getQuery(true)
+                ->update($this->db->quoteName('#__users'))
+                ->set($fields)
+                ->where($this->db->quoteName('id') . ' = ' . (int) $userId);
+
+        $this->db->setQuery($query)->execute();
+
         return true;
+    }
+
+    private function saveProfileRecord($profileRow, $data) {
+        $profile = $this->loadProfileTable((int) ($profileRow->member_id ?? 0));
+
+        if (!$profile->save($data)) {
+            $this->messages[] = 'Error saving profile: ' . $profile->getError();
+            return null;
+        }
+
+        return $profile;
     }
 
     private function doesMemberExist($salesforceId) {
@@ -440,10 +735,6 @@ class LoadHelper {
             if (isset($profile->member_id) && (int) $profile->member_id > 0) {
                 return (int) $profile->member_id;
             }
-
-            if (isset($profile->id) && (int) $profile->id > 0) {
-                return (int) $profile->id;
-            }
         }
 
         return 0;
@@ -498,6 +789,46 @@ class LoadHelper {
         return ($value === '') ? null : $value;
     }
 
+    private function identifyDuplicateFeedEmails($members) {
+        $groupedMembers = array();
+
+        foreach ($members as $member) {
+            $member = $this->normaliseMember($member);
+            $email = $this->normaliseScalar($member['email'] ?? null);
+
+            if ($email === null) {
+                continue;
+            }
+
+            $key = strtolower($email);
+
+            if (!isset($groupedMembers[$key])) {
+                $groupedMembers[$key] = array();
+            }
+
+            $groupedMembers[$key][] = $member;
+        }
+
+        $this->duplicateFeedMembers = array();
+        $this->duplicateFeedNotifications = array();
+
+        foreach ($groupedMembers as $key => $items) {
+            if (count($items) > 1) {
+                $this->duplicateFeedMembers[$key] = $items;
+            }
+        }
+    }
+
+    private function isDuplicateFeedEmail($email) {
+        $email = $this->normaliseScalar($email);
+
+        if ($email === null) {
+            return false;
+        }
+
+        return array_key_exists(strtolower($email), $this->duplicateFeedMembers);
+    }
+
     private function normaliseEnumValue($value, array $allowedValues, $fieldName, $fallbackValue = null) {
         $value = $this->normaliseScalar($value);
 
@@ -536,14 +867,6 @@ class LoadHelper {
         return $fallback;
     }
 
-    private function purgeProfile($id) {
-        // Deletes profile record and audit records
-        $sql = 'DELETE FROM #__ra_profiles_audit WHERE object_id=' . $id;
-        $this->toolsHelper->executeCommand($sql);
-        $sql = 'DELETE FROM #__ra_profiles WHERE id=' . $id;
-        $this->toolsHelper->executeCommand($sql);
-    }
-
     private function quoteValue($value) {
         if ($value === null) {
             return 'NULL';
@@ -552,7 +875,7 @@ class LoadHelper {
         return $this->db->quote($value);
     }
 
-    private function mapMemberToProfileData($member) {
+    private function mapMemberToProfileData($member, $existingProfile = null, $userId = null) {
         $columns = $this->getProfileColumns();
         $data = array();
 
@@ -563,7 +886,6 @@ class LoadHelper {
             'lastName' => 'lastName',
             'title' => 'title',
             'initials' => 'initials',
-            'email' => 'email',
             'mobileNumber' => 'mobileNumber',
             'landlineTelephone' => 'landlineTelephone',
             'address1' => 'address1',
@@ -645,11 +967,23 @@ class LoadHelper {
         }
 
         if (array_key_exists('home_group', $columns)) {
-            $data['home_group'] = $this->normaliseScalar($member['groupCode'] ?? null);
+            $existingHomeGroup = null;
+
+            if (is_object($existingProfile) && property_exists($existingProfile, 'home_group')) {
+                $existingHomeGroup = $this->normaliseScalar($existingProfile->home_group);
+            }
+
+            if ($existingHomeGroup === null) {
+                $data['home_group'] = $this->normaliseScalar($member['groupCode'] ?? null);
+            }
         }
 
         if (array_key_exists('preferred_name', $columns)) {
             $data['preferred_name'] = $this->buildPreferredName($member);
+        }
+
+        if (array_key_exists('id', $columns)) {
+            $data['id'] = $userId;
         }
 
         $dateFields = array(
@@ -709,16 +1043,6 @@ class LoadHelper {
         $this->toolsHelper->createAuditRecord($fieldName, $oldValue, $newValue, $objectId, 'ra_profiles');
     }
 
-    private function insertProfile($data) {
-        $profile = new MemberTable($this->db);
-        if (!$profile->save($data)) {
-            $this->messages[] = 'Error creating profile: ' . $profile->getError();
-            return null;
-        }
-        $this->toolsHelper->createAuditRecord('Record', 'C', '', $profile->id, 'ra_profiles');
-        return $profile;
-    }
-
     private function syncRoles($profile, $member) {
         $columns = $this->getRoleColumns();
 
@@ -761,8 +1085,6 @@ class LoadHelper {
     private function syncMember($member) {
 
         $member = $this->normaliseMember($member);
-//        var_dump($member);
-//        die;
         $salesforceId = $this->normaliseScalar($member['salesforceId'] ?? null);
         if (JDEBUG) {
             $this->messages[] = 'Syncing member with Salesforce ID: ' . $salesforceId . ', member ' . $member['membershipNumber'];
@@ -773,29 +1095,55 @@ class LoadHelper {
             return false;
         }
 
-        $data = $this->mapMemberToProfileData($member);
+        $this->db->transactionStart();
 
-//         if (JDEBUG) {
-//            var_dump($data);
-//             echo '<br>';
-//         }
-        $profile = $this->getProfileBySalesforceId($salesforceId);
+        try {
+            list($profileRow, $reusedLegacyProfile) = $this->resolveProfileRow($member);
+            list($userId, $createdUser, $linkRequiresSubscription) = $this->resolveUserId($member, $profileRow);
 
-        if ($profile === null) {
-            $profile = $this->insertProfile($data);
-
-            if ($profile === null) {
-                $this->logMessage('Failed to create profile for ' . $salesforceId, '3');
+            if ($userId === false) {
+                $this->db->transactionRollback();
                 return false;
             }
-            $this->messages[] = 'Created new profile for Salesforce ID: ' . $salesforceId . ' with member_id ' . $profile->member_id;
-            $this->count_new_profiles++;
-            $this->createProfileAudit($this->getProfileReference($profile), 'C', '', null, '');
-        } else {
-            $profile->load(['salesforceId' => $salesforceId]);
-            $changes = $this->updateProfile($profile, $data);
 
-            if (empty($changes)) {
+            $data = $this->mapMemberToProfileData($member, $profileRow, $userId);
+            $changes = array();
+            $isNewProfile = !is_object($profileRow) || empty($profileRow->member_id);
+
+            if (!$isNewProfile) {
+                foreach ($data as $columnName => $newValue) {
+                    $oldValue = property_exists($profileRow, $columnName) ? $profileRow->$columnName : null;
+
+                    if ($this->valuesDiffer($oldValue, $newValue)) {
+                        $changes[$columnName] = array(
+                            'old' => $oldValue,
+                            'new' => $newValue,
+                        );
+                    }
+                }
+            }
+
+            $profile = $this->saveProfileRecord($profileRow, $data);
+
+            if ($profile === null) {
+                $this->db->transactionRollback();
+                $this->logMessage('Failed to save profile for ' . $salesforceId, '3');
+                return false;
+            }
+
+            if ($isNewProfile) {
+                $this->messages[] = 'Created new profile for Salesforce ID: ' . $salesforceId . ' with member_id ' . $profile->member_id;
+                $this->count_new_profiles++;
+                $this->createProfileAudit($this->getProfileReference($profile), 'C', '', null, '');
+            } elseif ($reusedLegacyProfile) {
+                $this->messages[] = 'Reused legacy profile for Salesforce ID: ' . $salesforceId . ' with member_id ' . $profile->member_id;
+                $this->count_legacy_profiles_reused++;
+                $this->count_updated++;
+
+                foreach ($changes as $fieldName => $change) {
+                    $this->createProfileAudit($this->getProfileReference($profile), 'U', $fieldName, $change['old'], $change['new']);
+                }
+            } elseif (empty($changes)) {
                 $this->count_not_updated++;
             } else {
                 $this->count_updated++;
@@ -803,19 +1151,23 @@ class LoadHelper {
                 foreach ($changes as $fieldName => $change) {
                     $this->createProfileAudit($this->getProfileReference($profile), 'U', $fieldName, $change['old'], $change['new']);
                 }
-
-                $profile = $this->getProfileBySalesforceId($salesforceId);
             }
-        }
 
-        $this->syncRoles($profile, $member);
-//var_dump($profile);
-//echo '<br><br>';
-        if (!empty($member['email'])) {
-            $this->checkEmail($member['email'], $profile->member_id, $profile->id);
-        }
+            $this->syncRoles($profile, $member);
 
-        return true;
+            if ($linkRequiresSubscription && (int) $userId > 0) {
+                $this->ensurePrimarySubscription((int) $userId);
+            }
+
+            $this->db->transactionCommit();
+
+            return true;
+        } catch (\Throwable $exception) {
+            $this->db->transactionRollback();
+            $this->messages[] = 'Error syncing member ' . $salesforceId . ': ' . $exception->getMessage();
+            $this->logMessage('Error syncing member ' . $salesforceId . ': ' . $exception->getMessage(), '3');
+            return false;
+        }
     }
 
     public function loadMembers($code = 'NS03') {
@@ -844,6 +1196,7 @@ class LoadHelper {
         if ($count > 0) {
             $message = 'New profile records ' . $this->count_new_profiles;
             $message .= ', New user records ' . $this->count_new_users;
+            $message .= ', Legacy profiles reused ' . $this->count_legacy_profiles_reused;
             $message .= ', Updated records ' . $this->count_updated;
             $message .= ', Not updated records ' . $this->count_not_updated;
             $message .= ', Watermark ' . $startedAt;
@@ -871,8 +1224,11 @@ class LoadHelper {
 
     public function processMembers($members) {
         $count = 0;
-        $this->count_new = 0;
+        $this->count_new_profiles = 0;
+        $this->count_new_users = 0;
+        $this->count_legacy_profiles_reused = 0;
         $this->count_updated = 0;
+        $this->count_not_updated = 0;
         //var_dump($members);
         //echo '<br>';
         if (is_object($members) && isset($members->members)) {
@@ -885,6 +1241,13 @@ class LoadHelper {
             $this->logMessage('No member data returned from feed', '3');
             return 0;
         }
+
+        if ($members instanceof \Traversable) {
+            $members = iterator_to_array($members, false);
+        }
+
+        $this->identifyDuplicateFeedEmails($members);
+
         foreach ($members as $member) {
 //            if ($count == 0){
 //                var_dump($member);
@@ -906,30 +1269,6 @@ class LoadHelper {
                 ->where($this->db->quoteName('code') . ' = ' . $this->db->quote($code));
 
         $this->db->setQuery($query)->execute();
-    }
-
-    private function updateProfile($profile, $data) {
-        $changes = array();
-        $columns = $this->getProfileColumns();
-
-        foreach ($data as $columnName => $newValue) {
-            $oldValue = property_exists($profile, $columnName) ? $profile->$columnName : null;
-
-            if ($this->valuesDiffer($oldValue, $newValue)) {
-                $changes[$columnName] = array(
-                    'old' => $oldValue,
-                    'new' => $newValue,
-                );
-            }
-        }
-
-        if (empty($changes)) {
-            return $changes;
-        }
-
-        $profile->save($data);
-
-        return $changes;
     }
 
     private function valuesDiffer($oldValue, $newValue) {

@@ -4,188 +4,282 @@
  * @version    1.1.7
  * @package    com_ra_members
  * @author     Charlie Bigley <charlie@bigley.me.uk>
- * @copyright  2025 Charlie Bigley
+ * @copyright  2026 Charlie Bigley
  * @license    GNU General Public License version 2 or later; see LICENSE.txt
- * 25/04/26 CB Created
+ * 15/07/26 CB set values for member_id / organisation_code from user state
  */
 
-namespace Ramblers\Component\Ra_members\Administrator\View\Member;
+namespace Ramblers\Component\Ra_members\Administrator\Model;
 
-// No direct access
+// No direct access.
 defined('_JEXEC') or die;
 
-use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
-use \Joomla\CMS\Toolbar\ToolbarHelper;
+use \Joomla\CMS\Table\Table;
 use \Joomla\CMS\Factory;
-use Joomla\CMS\Helper\ContentHelper;
-use Joomla\CMS\HTML\HTMLHelper;
 use \Joomla\CMS\Language\Text;
-use \Joomla\CMS\User\CurrentUserInterface;
-use Ramblers\Component\Ra_mailman\Site\Helpers\Mailhelper;
+use \Joomla\CMS\Plugin\PluginHelper;
+use \Joomla\CMS\MVC\Model\AdminModel;
+use \Joomla\CMS\Helper\TagsHelper;
+use Joomla\CMS\Versioning\VersionableModelTrait;
+use \Joomla\CMS\Filter\OutputFilter;
+use \Joomla\CMS\Event\Model;
+use Joomla\CMS\Event\AbstractEvent;
+use \Joomla\Database\DatabaseInterface;
 use Ramblers\Component\Ra_tools\Site\Helpers\ToolsHelper;
-use Ramblers\Component\Ra_tools\Site\Helpers\ToolsTable;
 
 /**
- * View class for a single Profile record.
+ * Role model.
  *
- * @since  2.0
+ * @since  1.0.0
  */
-class HtmlView extends BaseHtmlView implements CurrentUserInterface {
+class RoleModel extends AdminModel {
 
-    protected $callback;
-    protected $isSuper;
-    protected $item;
-    protected $state;
-    protected $toolsHelper;
-    protected $user;
+    use VersionableModelTrait;
 
     /**
-     * Display the view
+     * @var    string  The prefix to use with controller messages.
      *
-     * @param   string  $tpl  Template name
-     *
-     * @return void
-     *
-     * @throws Exception
+     * @since  1.0.0
      */
-    public function display($tpl = null) {
-        $this->state = $this->get('State');
-        $this->item = $this->get('Item');
-        $this->user = $this->getCurrentUser();
-        $this->mailHelper = new Mailhelper;
-        $this->toolsHelper = new ToolsHelper;
-        $this->isSuper = $this->toolsHelper->isSuperuser();
+    protected $text_prefix = 'COM_RA_MEMBERS';
+
+    /**
+     * @var    string  Alias to manage history control
+     *
+     * @since  1.0.0
+     */
+    public $typeAlias = 'com_ra_members.role';
+
+    /**
+     * @var    null  Item data
+     *
+     * @since  1.0.0
+     */
+    protected $item = null;
+    protected $code;
+    protected $member_id;
+
+    /**
+     * Returns a reference to the a Table object, always creating it.
+     *
+     * @param   string  $type    The table type to instantiate
+     * @param   string  $prefix  A prefix for the table class name. Optional.
+     * @param   array   $config  Configuration array for model. Optional.
+     *
+     * @return  Table    A database object
+     *
+     * @since   1.0.0
+     */
+    public function getTable($type = 'Role', $prefix = 'Administrator', $config = array()) {
+        return parent::getTable($type, $prefix, $config);
+    }
+
+    /**
+     * Method to get the record form.
+     *
+     * @param   array    $data      An optional array of data for the form to interogate.
+     * @param   boolean  $loadData  True if the form is to load its own data (default case), false if not.
+     *
+     * @return  \JForm|boolean  A \JForm object on success, false on failure
+     *
+     * @since   1.0.0
+     */
+    public function getForm($data = array(), $loadData = true) {
+        // Initialise variables.
         $app = Factory::getApplication();
-        $this->callback = $app->input->getWord('callback', '');
-        // Check for errors.
-        if (count($errors = $this->get('Errors'))) {
-            throw new \Exception(implode("\n", $errors));
-        }
-        ToolbarHelper::title(Text::_('Member'), "generic");
-
-        parent::display($tpl);
-    }
-
-    public function showAudit() {
-        $sql = 'SELECT * FROM #__ra_profiles_audit ';
-        $sql .= 'WHERE object_id = ' . (int) $this->item->id . ' ORDER BY date_amended DESC';
-        $audit = $this->toolsHelper->getRows($sql);
-        if ($audit) {
-            echo '<h2>Changes to member record</h2>';
-            $table = new ToolsTable;
-            $table->add_header("Date,Action,Field,Details");
-            foreach ($audit as $entry) {
-                $table->add_item(HTMLHelper::_('date', $entry->date_amended, 'd M Y H:i:s'));
-                $table->add_item($entry->record_type);
-                $table->add_item($entry->field_name);
-                $table->add_item($entry->field_value);
-                //       $table->add_item($entry->old_value);
-                //       $table->add_item($entry->new_value);
-                $table->generate_line();
-            }
-            $table->generate_table();
-//        } else {
-//            echo '<p>No changes to this member record since 1 Jan 2024.</p>';
-        }
-    }
-
-    public function showRoles() {
-        echo '<h4>Roles</h4>';
-        $target_add = 'administrator/index.php?option=com_ra_members&task=role.add';
-        $target_add .= '&member_id=' . $this->item->member_id;
-        $target_add .= '&group_code=' . $this->item->home_group;
-        $target_add .= '&callback=' . $this->callback;
-        $target_add .= '&menu_id=' . $this->menu_id;
-        echo $this->toolsHelper->buildButton($target_add, 'Add Role');
-        $sql = 'SELECT r.*, o.name ';
-        //       $sql .= 'u.name AS `Subscriber`, ';
-//        $sql .= 'DATE(s.created) AS `Created`, ';
-        $sql .= 'FROM `#__ra_roles` AS r ';
-        $sql .= 'LEFT JOIN `#__ra_organisations` AS `o` ON o.code = r.organisation_code ';
-        $sql .= 'LEFT JOIN `#__ra_profiles` AS `p` ON p.id = r.member_id ';
-        $sql .= 'WHERE r.member_id=' . $this->item->member_id;
-//$sql .= ' OR l.owner_id=' . $this->user->id;
-        $sql .= ' ORDER BY r.organisation_code, r.role ';
-        $rows = $this->toolsHelper->getRows($sql);
-
-        if ($this->toolsHelper->rows == 0) {
-            echo 'No roles <br>';
-            return;
-        }
-
-        $table = new ToolsTable();
-        $title = 'Role,Group,Last_updated';
-        if ($this->toolsHelper->isSuperuser()) {
-            $tile .= ',Action';
-            $target_delete = 'administrator/index.php?option=com_ra_members&task=role.delete&id=';
+        $toolsHelper = new ToolsHelper;
+        // Get the form.
+        $form = $this->loadForm(
+                'com_ra_members.role',
+                'role',
+                array(
+                    'control' => 'jform',
+                    'load_data' => $loadData
+                )
+        );
+        if ($this->member_id == '0') {
+            $form->setFieldAttribute('member_name', 'visible', 'false');
+            $form->setFieldAttribute('member_name', 'required', 'false');
         } else {
-            echo 'No<br>';
+            $form->setFieldAttribute('member_name', 'visible', 'true');
+            $form->setFieldAttribute('member_id', 'visible', 'false');
+            $form->setFieldAttribute('member_id', 'required', 'false');
         }
-        $table->add_header($title);
-        foreach ($rows as $row) {
-            $table->add_item($row->role);
-            $table->add_item($row->name);
-            //               $table->add_item(HTMLHelper::_('date', $row->expiry_date, 'd-M-Y')); // $pretty_date = HTMLHelper::_('date', $row->expiry_date, 'd-M-Y');
-            $table->add_item(HTMLHelper::_('date', $row->last_updated, 'd-M-Y'));
-            $table->add_item($details);
-            if ($this->isSuper) {
-                $details .= $this->toolsHelper->buildButton($target_delete . $row->id, 'Delete');
-                $table->add_item($details);
+        // User state will have been set by the calling program
+        $member_id = $app->getUserState('com_ra_members.member.member_id','0');
+        $group_code = $app->getUserState('com_ra_members.member.group_code','');
+        if ($member_id > 0) {
+            $form->setFieldAttribute('member_id', 'default', $member_id);
+            $form->setFieldAttribute('member_id', 'readonly', 'true');
+        }
+        if ($group_code !== '') {
+            $form->setFieldAttribute('organisation_code', 'default', $group_code);
+            // Only SuperUsers can change the group code
+            if (!$toolsHelper->isSuperuser()) {
+               $form->setFieldAttribute('organisation_code', 'readonly', 'true');
+               $group_name = $toolsHelper->lookupGroup($group_code);
             }
-            $table->generate_line();
-            $count++;
+            $form->setFieldAttribute('group_name', 'default', $group_name);
+            $form->setFieldAttribute('group_name', 'visible', 'true');
         }
 
-
-        $table->generate_table();
+        return $form;
     }
 
-    public function showSubscriptions() {
-        echo '<h4>Subscriptions</h4>';
+    /**
+     * Method to get the data that should be injected in the form.
+     *
+     * @return  mixed  The data for the form.
+     *
+     * @since   1.0.0
+     */
+    protected function loadFormData() {
+        // Check the session for previously entered form data.
+        $data = Factory::getApplication()->getUserState('com_ra_members.edit.role.data', array());
 
-        $target_info = 'index.php?option=com_ra_mailman&task=profile.showSubscriptionDetails&menu_id=' . $this->menu_id . '&id=';
-        $target_renew = 'index.php?option=com_ra_mailman&task=mail_lst.renew&Itemid=' . $this->menu_id;
-        $target_renew .= '&user_id=' . $this->item->id . '&list_id=';
+        if (empty($data)) {
+            if ($this->item === null) {
+                $this->item = $this->getItem();
+            }
 
-        $sql = 'SELECT s.id, s.list_id, ';
-        $sql .= 'u.name AS `Subscriber`, ';
-        $sql .= 'DATE(s.created) AS `Created`, ';
-        $sql .= 's.modified, s.expiry_date, s.reminder_sent,';
-        $sql .= 'l.group_code, l.name AS `list`, ';
-        $sql .= 'm.name AS `Method`, ma.name as Access ';
-        $sql .= 'FROM `#__ra_mail_subscriptions` AS s ';
-        $sql .= 'INNER JOIN `#__ra_mail_methods` AS `m` ON m.id = s.method_id ';
-        $sql .= 'LEFT JOIN `#__users` AS `u` ON u.id = s.user_id ';
-        $sql .= 'LEFT JOIN `#__ra_mail_lists` AS `l` ON l.id = s.list_id ';
-        $sql .= 'LEFT JOIN #__ra_mail_access AS ma ON ma.id = s.record_type ';
-        $sql .= 'LEFT JOIN #__ra_profiles as p ON p.id = s.user_id ';
-        $sql .= 'WHERE s.user_id=' . $this->item->id;
-//$sql .= ' OR l.owner_id=' . $this->user->id;
-        $sql .= ' ORDER BY l.group_code, l.name ';
-        $rows = $this->toolsHelper->getRows($sql);
-        if ($this->toolsHelper->rows == 0) {
-            echo 'No subscriptions <br>';
-            return;
-        } else {
-            $table = new ToolsTable();
-            $table->add_header(',Group,Title,Expiry date,Reminder, Action');
-            $count = 1;
-            foreach ($rows as $row) {
-                $lists[] = $row->list_id;
-                $table->add_item('<b>' . $count . '</b>. ');
-                $table->add_item($row->group_code);
-                $table->add_item($row->list);
-                $table->add_item(HTMLHelper::_('date', $row->expiry_date, 'd-M-Y')); // $pretty_date = HTMLHelper::_('date', $row->expiry_date, 'd-M-Y');
-                $table->add_item(HTMLHelper::_('date', $row->reminder_sent, 'd-M-Y'));
-                $details = $this->toolsHelper->buildButton($target_info . $row->id, 'Details');
-                $details .= $this->toolsHelper->buildButton($target_renew . $row->list_id, 'Renew');
-                $table->add_item($details);
-                $table->generate_line();
-                $count++;
+            $data = $this->item;
+
+            // Support for multiple or not foreign key field: role
+            $array = array();
+
+            foreach ((array) $data->role as $value) {
+                if (!is_array($value)) {
+                    $array[] = $value;
+                }
+            }
+            if (!empty($array)) {
+
+                $data->role = $array;
+            }
+        }
+        return $data;
+    }
+
+    /**
+     * Method to get a single record.
+     *
+     * @param   integer  $pk  The id of the primary key.
+     *
+     * @return  mixed    Object on success, false on failure.
+     *
+     * @since   1.0.0
+     */
+    public function getItem($pk = null) {
+
+        if ($item = parent::getItem($pk)) {
+            if (isset($item->params)) {
+                $item->params = json_encode($item->params);
+            }
+
+            // Do any procesing on fields here if needed
+        }
+
+        return $item;
+    }
+
+    /**
+     * Method to duplicate an Role
+     *
+     * @param   array  &$pks  An array of primary key IDs.
+     *
+     * @return  boolean  True if successful.
+     *
+     * @throws  Exception
+     */
+    public function duplicate(&$pks) {
+        $app = Factory::getApplication();
+        $user = $app->getIdentity();
+        $dispatcher = $this->getDispatcher();
+
+        // Access checks.
+        if (!$user->authorise('core.create', 'com_ra_members')) {
+            throw new \Exception(Text::_('JERROR_CORE_CREATE_NOT_PERMITTED'));
+        }
+
+        $context = $this->option . '.' . $this->name;
+
+        // Include the plugins for the save events.
+        PluginHelper::importPlugin($this->events_map['save']);
+
+        $table = $this->getTable();
+
+        foreach ($pks as $pk) {
+
+            if ($table->load($pk, true)) {
+                // Reset the id to create a new record.
+                $table->id = 0;
+
+                if (!$table->check()) {
+                    throw new \Exception($table->getError());
+                }
+
+
+                // Create the before save event.
+                $beforeSaveEvent = AbstractEvent::create(
+                                $this->event_before_save,
+                                [
+                                    'context' => $context,
+                                    'subject' => $table,
+                                    'isNew' => true,
+                                    'data' => $table,
+                                ]
+                );
+
+                // Trigger the before save event.
+                $dispatchResult = Factory::getApplication()->getDispatcher()->dispatch($this->event_before_save, $beforeSaveEvent);
+
+                // Check if dispatch result is an array and handle accordingly
+                $result = isset($dispatchResult['result']) ? $dispatchResult['result'] : [];
+
+                // Proceed with your logic
+                if (in_array(false, $result, true) || !$table->store()) {
+                    throw new \Exception($table->getError());
+                }
+
+                // Trigger the after save event.
+                Factory::getApplication()->getDispatcher()->dispatch(
+                        $this->event_after_save,
+                        AbstractEvent::create(
+                                $this->event_after_save,
+                                [
+                                    'context' => $context,
+                                    'subject' => $table,
+                                    'isNew' => true,
+                                    'data' => $table,
+                                ]
+                        )
+                );
+            } else {
+                throw new \Exception($table->getError());
             }
         }
 
-        $table->generate_table();
+        // Clean cache
+        $this->cleanCache();
+
+        return true;
+    }
+
+    /**
+     * Prepare and sanitise the table prior to saving.
+     *
+     * @param   Table  $table  Table Object
+     *
+     * @return  void
+     *
+     * @since   1.0.0
+     */
+    protected function prepareTable($table) {
+        jimport('joomla.filter.output');
+
+//        if (empty($table->id)) {
+//           // Set ordering to the last item if not set
+//        }
     }
 
 }

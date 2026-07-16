@@ -36,12 +36,12 @@ echo '<br>';
 echo 'Name: <b>' . $this->item->title . ' ' . $this->item->firstName . ' ' . $this->item->lastName . '</b><br>';
 echo 'Preferred Name: <b>' . $this->item->preferred_name . '</b><br>';
 echo 'Home group: <b>' . $this->item->home_group . '</b>';
-if ($this->item->home_group !== $this->item->group_code) {
+if ($this->item->home_group !== $this->item->groupCode) {
     echo ', Group code: <b>';
-    if (is_null($this->item->group_code)) {
+    if (is_null($this->item->groupCode)) {
         echo '(blank)';
     } else {
-        echo $this->item->group_code;
+        echo $this->item->groupCode;
     }
 }
 echo '</b><br>';
@@ -90,6 +90,7 @@ if (is_null($this->item->id)) {
     $user_id = $this->toolsHelper->getValue($sql);
     if ($user_id) {
         $sql = 'UPDATE #__ra_profiles SET id=' . (int) $user_id;
+        $sql .= ' WHERE member_id=' . (int) $this->item->member_id;
         $this->toolsHelper->executeCommand($sql);
         $sql = 'SELECT email FROM `#__users` WHERE id = ' . (int) $user_id;
         $email = $this->toolsHelper->getValue($sql);
