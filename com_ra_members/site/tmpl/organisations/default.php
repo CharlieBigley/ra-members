@@ -8,6 +8,7 @@
  */
 defined('_JEXEC') or die;
 
+use Joomla\CMS\Factory;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Layout\LayoutHelper;
@@ -23,6 +24,7 @@ $listDirn   = $this->escape($this->state->get('list.direction'));
 $groupsOnly = $this->state->get('filter.record_type') === 'G';
 
 $objHelper = new ToolsHelper;
+$db        = Factory::getDbo();
 $self      = 'index.php?option=com_ra_members&view=organisations';
 
 if ($this->params->get('show_page_heading')) {
@@ -98,7 +100,8 @@ if (empty($this->items)) {
         if (!$groupsOnly) {
             echo '<td class="d-none d-md-table-cell">';
             if ($item->record_type == 'A') {
-                $groupCount = $objHelper->getValue('SELECT COUNT(id) FROM #__ra_groups WHERE code LIKE "' . $item->code . '%"');
+                $safeCode   = $db->escape($item->code);
+                $groupCount = $objHelper->getValue('SELECT COUNT(id) FROM #__ra_groups WHERE code LIKE "' . $safeCode . '%"');
                 if ($groupCount > 0) {
                     echo $groupCount;
                 }
@@ -108,10 +111,11 @@ if (empty($this->items)) {
 
         echo '<td class="d-none d-md-table-cell">';
         $sql_count = 'SELECT COUNT(member_id) FROM #__ra_profiles WHERE membershipNumber IS NOT NULL AND ';
+        $safeCode  = $db->escape($item->code);
         if ($item->record_type == 'A') {
-            $memberCount = $objHelper->getValue($sql_count . 'home_group LIKE "' . $item->code . '%"');
+            $memberCount = $objHelper->getValue($sql_count . 'home_group LIKE "' . $safeCode . '%"');
         } else {
-            $memberCount = $objHelper->getValue($sql_count . 'home_group = "' . $item->code . '"');
+            $memberCount = $objHelper->getValue($sql_count . 'home_group = "' . $safeCode . '"');
         }
         echo is_null($memberCount) ? '0' : (int) $memberCount;
         echo '</td>' . PHP_EOL;
